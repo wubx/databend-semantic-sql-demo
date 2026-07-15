@@ -194,7 +194,21 @@ After the initial customer demo is stable:
 - [ ] Add simple result charts
 - [ ] Add downloadable query evidence
 
-## Optional Milestone 5 — Controlled Free Text-to-SQL
+## Optional Milestone 5 — Portable Semantic Manifest
+
+Combine Snowflake-inspired AI semantics with Cube's executable semantic layer.
+See [the combined design](./docs/snowflake-vs-cube-combined-semantic-layer.md).
+
+- [ ] Define a minimal versioned portable-manifest schema
+- [ ] Model entities, dimensions, facts, metrics, joins, and cardinality
+- [ ] Add synonyms, verified queries, AI policies, and governance metadata
+- [ ] Compile portable entities and metrics into Cube YAML
+- [ ] Compile synonyms and descriptions into an LLM member catalog
+- [ ] Compile verified queries into the router catalog and regression tests
+- [ ] Validate generated members against Cube `/meta`
+- [ ] Keep Cube and provider-specific features in namespaced extensions
+
+## Optional Milestone 6 — Controlled Free Text-to-SQL
 
 This milestone is not required for the first customer demo.
 
@@ -209,14 +223,14 @@ This milestone is not required for the first customer demo.
 
 ## Demo Questions
 
-| ID | Question | Route | Initial status |
-| --- | --- | --- | --- |
-| S1 | 订单总数是多少？ | Semantic | Passed |
-| S2 | 按订单状态统计订单金额。 | Semantic | Passed |
-| S3 | 每月订单金额趋势是什么？ | Semantic | Implemented |
-| Q1 | 执行 TPC-H Q1 定价汇总报表。 | TPC-H template | Implemented |
-| Q6 | 执行 Q6，折扣在 5% 到 7% 之间，数量小于 24。 | TPC-H template | Passed |
-| Q21 | 查询沙特阿拉伯导致已完成订单等待的供应商。 | TPC-H template | Implemented |
+| ID  | Question                                     | Route          | Initial status |
+| --- | -------------------------------------------- | -------------- | -------------- |
+| S1  | 订单总数是多少？                             | Semantic       | Passed         |
+| S2  | 按订单状态统计订单金额。                     | Semantic       | Passed         |
+| S3  | 每月订单金额趋势是什么？                     | Semantic       | Implemented    |
+| Q1  | 执行 TPC-H Q1 定价汇总报表。                 | TPC-H template | Implemented    |
+| Q6  | 执行 Q6，折扣在 5% 到 7% 之间，数量小于 24。 | TPC-H template | Passed         |
+| Q21 | 查询沙特阿拉伯导致已完成订单等待的供应商。   | TPC-H template | Implemented    |
 
 ## Customer Demo Script
 

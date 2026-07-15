@@ -59,6 +59,7 @@ Snowflake's Cortex Analyst semantic-view format is preserved as an architecture
 reference:
 
 - [Field-by-field explanation](./docs/snowflake-semantic-view-reference.md)
+- [Snowflake vs. Cube and combined semantic-layer design](./docs/snowflake-vs-cube-combined-semantic-layer.md)
 - [Original placeholder template](./references/snowflake-semantic-view.template.yaml)
 - [TPC-H order analytics example](./references/snowflake-tpch-order-analytics.example.yaml)
 
