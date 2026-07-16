@@ -1,7 +1,7 @@
 entity:
   name: Supplier
   title: 供应商
-  description: TPC-H SF100 决策支持测试数据中的供应商主题，一行代表一个供应商，用于分析供应商基本信息、国家分布及账户余额；该数据不是真实生产数据。
+  description: TPC-H SF100 决策支持测试数据中的供应商主题，一行代表一个供应商，可用于分析供应商基本信息、国家分布和账户余额。该主题为测试数据语义模型草稿，不代表真实生产数据。
   source:
     schema: tpch_100
     table: supplier
@@ -16,11 +16,13 @@ entity:
         - 供应商ID
         - 供应商标识
         - 供应商编码
+        - 供货商编号
         - supplier ID
         - supplier key
         - supplier identifier
-      description: 供应商的主键编号，用于唯一标识一条供应商记录。
-      business_definition: 供应商表中的唯一标识，来源于 s_suppkey，不应作为可加总的业务数值使用。
+        - vendor ID
+      description: 唯一标识供应商记录的主键编号。
+      business_definition: 供应商在当前数据集中的唯一标识，来源于 s_suppkey。该字段属于标识类维度，不应作为可加总的业务数值使用。
     - name: name
       title: 供应商名称
       expr: s_name
@@ -28,64 +30,73 @@ entity:
       synonyms:
         - 供应商名
         - 供货商名称
+        - 供货商名
         - supplier name
         - vendor name
-      description: 供应商记录中的名称。
-      business_definition: 用于识别和展示供应商的名称，来源于 s_name。
+      description: 供应商记录中用于识别和展示供应商的名称。
+      business_definition: 供应商的名称信息，来源于 s_name，可用于供应商查询、展示和分类分析。
     - name: nationKey
-      title: 国家编号
+      title: 所属国家编号
       expr: s_nationkey
       type: number
       synonyms:
+        - 国家编号
         - 国家ID
         - 国家标识
-        - 所属国家编号
+        - 供应商国家编号
         - nation ID
         - nation key
         - country ID
-      description: 供应商所属国家的编号。
-      business_definition: 标识供应商所属国家的编号，来源于 s_nationkey，不应作为可加总的业务数值使用。
+        - country key
+      description: 标识供应商所属国家的编号。
+      business_definition: 供应商所属国家的标识，来源于 s_nationkey。该字段属于标识类维度，不应作为可加总的业务数值使用。
   facts:
     - name: accountBalance
       title: 供应商账户余额
       expr: s_acctbal
       type: decimal
-      description: 供应商记录中的账户余额候选字段。
-      business_definition: 来源于 s_acctbal 的供应商账户余额值；不代表收入，其币种及是否允许汇总需要人工确认。
+      description: 供应商记录中的账户余额候选字段，其币种和可汇总性尚待人工确认。
+      business_definition: 来源于 s_acctbal 的供应商账户余额值，不代表收入。币种以及该余额是否适合跨供应商汇总需要人工确认，当前定义保持草稿状态。
       synonyms:
         - 供应商余额
         - 账户余额
         - 供应商账户结余
+        - 供货商账户余额
         - supplier account balance
         - supplier balance
         - account balance
+        - vendor account balance
   metrics:
     - name: count
       title: 供应商数量
-      description: 按供应商编号统计的供应商数量。
+      description: 按供应商编号统计供应商记录数量的草稿指标。
       type: count
       expr: supplierKey
       synonyms:
         - 供应商数
         - 供货商数量
         - 供应商总数
+        - 供货商数
         - supplier count
         - number of suppliers
         - vendor count
-      business_definition: 以 supplierKey 为统计表达式计算供应商记录数量，用于衡量供应商规模；该指标保持草稿状态。
+        - number of vendors
+      business_definition: 以 supplierKey 为统计表达式计算供应商记录数量，用于衡量当前分析范围内的供应商规模。该指标保持草稿状态。
     - name: totalAccountBalance
       title: 供应商账户余额总计
-      description: 对供应商账户余额求和得到的汇总值。
+      description: 对供应商账户余额求和得到的草稿汇总指标，其业务适用性尚待人工确认。
       type: sum
       expr: accountBalance
       synonyms:
         - 供应商余额总计
         - 供应商账户余额合计
         - 账户余额总和
+        - 供货商账户余额合计
         - total supplier account balance
         - supplier balance total
         - sum of supplier balances
-      business_definition: 对 accountBalance 执行求和计算；该值不应解释为收入，币种及账户余额是否允许汇总需要人工确认，并保持草稿状态。
+        - total vendor account balance
+      business_definition: 对 accountBalance 执行求和计算。该指标不应解释为收入；币种以及供应商账户余额是否允许跨供应商汇总需要人工确认，当前定义保持草稿状态。
   extensions:
     cube:
       refresh_key: false
