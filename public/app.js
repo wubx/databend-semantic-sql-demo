@@ -11,6 +11,7 @@ const elements = Object.fromEntries(
     "cubeQuery",
     "validation",
     "explain",
+    "executeSql",
     "sql",
     "explainResult",
     "result",
@@ -28,6 +29,7 @@ async function boot() {
   elements.plan.addEventListener("click", () => plan(false));
   elements.run.addEventListener("click", () => plan(true));
   elements.explain.addEventListener("click", explain);
+  elements.executeSql.addEventListener("click", executePlannedSql);
 }
 
 async function loadHealth() {
@@ -102,7 +104,7 @@ function renderPlan(plan) {
         ? `使用 LLM（${plan.queryUnderstanding.method}）`
         : `未使用 LLM（${plan.queryUnderstanding?.method || "deterministic"}）`,
     ],
-    ["置信度", `${Math.round(plan.confidence * 100)}%`],
+    ["可信度", `${Math.round(plan.confidence * 100)}%`],
     [
       "执行路径",
       plan.route === "semantic"
@@ -128,6 +130,7 @@ function renderPlan(plan) {
     ? "#55dfc5"
     : "#ff8da3";
   elements.explain.disabled = !plan.validation?.valid;
+  elements.executeSql.disabled = !plan.validation?.valid;
   elements.explainResult.classList.add("hidden");
 }
 
@@ -143,6 +146,36 @@ async function explain() {
       .map((row) => Object.values(row).join(" "))
       .join("\n");
     elements.explainResult.classList.remove("hidden");
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function executePlannedSql() {
+  if (!currentPlan?.sql || !currentPlan?.validation?.valid) return;
+  setBusy(true);
+  clearError();
+  try {
+    const response = await api("/api/query/execute-sql", {
+      method: "POST",
+      body: JSON.stringify({
+        question: elements.question.value,
+        sql: currentPlan.sql,
+        sqlValues: currentPlan.sqlValues || [],
+        plan: {
+          queryId: currentPlan.queryId,
+          route: currentPlan.route,
+          planner: currentPlan.planner,
+          strategy: currentPlan.strategy,
+          cubeQuery: currentPlan.cubeQuery,
+          queryUnderstanding: currentPlan.queryUnderstanding,
+          timings: currentPlan.timings,
+        },
+      }),
+    });
+    renderResult(response);
   } catch (error) {
     showError(error.message);
   } finally {
@@ -207,6 +240,8 @@ function formatTimings(timings) {
 function setBusy(busy) {
   elements.plan.disabled = busy;
   elements.run.disabled = busy;
+  elements.explain.disabled = busy || !currentPlan?.validation?.valid;
+  elements.executeSql.disabled = busy || !currentPlan?.validation?.valid;
   elements.plan.textContent = busy ? "处理中…" : "生成计划";
 }
 function showError(message) {

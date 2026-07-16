@@ -84,6 +84,73 @@ app.post(
 );
 
 app.post(
+  "/api/query/execute-sql",
+  asyncHandler(async (req, res) => {
+    res.locals.queryObservation = {
+      operation: "execute-sql",
+      request: req.body,
+      startedAt: performance.now(),
+    };
+    const validationStartedAt = performance.now();
+    const validation = validateSql(req.body?.sql);
+    const validationMs = elapsed(validationStartedAt);
+    const suppliedPlan = req.body?.plan || {};
+    const plan = {
+      ...suppliedPlan,
+      supported: true,
+      sql: validation.sql || req.body?.sql,
+      sqlValues: Array.isArray(req.body?.sqlValues) ? req.body.sqlValues : [],
+      validation,
+      timings: {
+        ...(suppliedPlan.timings || {}),
+        validationMs,
+      },
+    };
+    res.locals.queryObservation.plan = plan;
+    if (!validation.valid) {
+      await observeQuery({ operation: "execute-sql", request: req.body, plan });
+      res.locals.queryObservation.logged = true;
+      return res.status(400).json(validation);
+    }
+    if (plan.sqlValues.length) {
+      const error = new Error("带绑定参数的 SQL 暂不允许直接执行");
+      await observeQuery({
+        operation: "execute-sql",
+        request: req.body,
+        plan,
+        error,
+      });
+      res.locals.queryObservation.logged = true;
+      return res.status(400).json({ error: error.message });
+    }
+
+    const queryStartedAt = performance.now();
+    const rows = await queryDatabend(plan.sql);
+    const response = {
+      plan,
+      data: rows.slice(0, Number(process.env.RESULT_ROW_LIMIT || 500)),
+      durationMs: elapsed(queryStartedAt),
+      source: "Validated generated SQL",
+      timings: {
+        planningMs: suppliedPlan.timings?.totalMs,
+        validationMs,
+        queryMs: elapsed(queryStartedAt),
+      },
+    };
+    response.summary = await timedSummary(req.body?.question, plan, response);
+    response.timings.totalMs = elapsed(res.locals.queryObservation.startedAt);
+    await observeQuery({
+      operation: "execute-sql",
+      request: req.body,
+      plan,
+      response,
+    });
+    res.locals.queryObservation.logged = true;
+    return res.json(response);
+  }),
+);
+
+app.post(
   "/api/query/execute",
   asyncHandler(async (req, res) => {
     res.locals.queryObservation = {

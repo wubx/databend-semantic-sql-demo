@@ -34,6 +34,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .badge.subtle { color: #8da9c4; border-color: #2b435c; }
 .empty { color: #7f97b0; padding: 18px 0; line-height: 1.65; }
 .code { margin: 0; min-height: 90px; overflow: auto; white-space: pre-wrap; color: #b8d7f4; background: #06111d; border-radius: 12px; padding: 15px; line-height: 1.5; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.sql-card .card-title > div { display: flex; align-items: center; gap: 8px; }
 .sql { color: #d8eaff; max-height: 420px; }
 .sql-card, .summary-card { margin-bottom: 18px; }
 .summary { color: #d8eaff; line-height: 1.75; font-size: 15px; }

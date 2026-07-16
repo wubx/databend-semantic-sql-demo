@@ -4,6 +4,7 @@ The demo appends one JSON object per line (`JSONL`) for every request to:
 
 - `POST /api/query/plan`
 - `POST /api/query/execute`
+- `POST /api/query/execute-sql`
 
 The default file is:
 
@@ -134,7 +135,7 @@ The file itself contains compact records, one per physical line:
 | ---------------------------- | -------------------------------------------------------------------- |
 | `timestamp`                  | UTC ISO-8601 time at which the observation was created.              |
 | `requestId`                  | Cube request ID when available; otherwise a generated UUID.          |
-| `operation`                  | `plan` or `execute`.                                                 |
+| `operation`                  | `plan`, `execute`, or `execute-sql`.                                 |
 | `status`                     | `success`, `rejected`, or `error`.                                   |
 | `question`                   | Original user question, unchanged.                                   |
 | `requestedMode`              | Requested `auto`, `semantic`, or `tpch` mode.                        |
@@ -143,6 +144,7 @@ The file itself contains compact records, one per physical line:
 | `queryId`                    | Certified query ID such as `S5`, or `DYNAMIC`.                       |
 | `strategy`                   | `certified` or `dynamic` for an LLM plan.                            |
 | `planner`                    | Planner that produced the plan: `llm` or `deterministic`.            |
+| `confidence`                 | Query-understanding confidence from 0 to 1; shown as 可信度 in UI.   |
 | `queryUnderstanding.llmUsed` | Whether an LLM participated in understanding this question.          |
 | `queryUnderstanding.method`  | Exact match, LLM, deterministic, or LLM fallback method.             |
 | `fallback`                   | Present when LLM planning failed and deterministic routing was used. |

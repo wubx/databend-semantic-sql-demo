@@ -22,6 +22,7 @@ test("builds an observation with question, Cube Query, SQL, and timings", () => 
       queryId: "S5",
       route: "semantic",
       planner: "llm",
+      confidence: 0.98,
       cubeQuery: {
         measures: ["LineItem.count"],
         segments: ["LineItem.delayedReceipt"],
@@ -43,6 +44,7 @@ test("builds an observation with question, Cube Query, SQL, and timings", () => 
     },
   });
 
+  assert.equal(observation.confidence, 0.98);
   assert.equal(observation.question, "统计延迟收货的明细数量");
   assert.deepEqual(observation.cubeQuery.segments, ["LineItem.delayedReceipt"]);
   assert.equal(observation.sql, "SELECT count(*) FROM tpch_100.lineitem");
