@@ -54,6 +54,7 @@ let selectedEntity = "all";
 let selectedKind = "all";
 let semanticSourceText = "";
 let modelerDatabases = [];
+let generatedDraftState = new Map();
 
 boot();
 
@@ -96,14 +97,7 @@ async function boot() {
   elements.databaseSelect.addEventListener("change", loadModelerTables);
   elements.tableSelector.addEventListener("change", updateModelerSelection);
   elements.generateModel.addEventListener("click", generateModelDrafts);
-  elements.generatedDrafts.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-copy-draft]");
-    if (!button) return;
-    await navigator.clipboard.writeText(
-      button.closest(".draft-result").querySelector("pre").textContent,
-    );
-    button.textContent = "已复制";
-  });
+  elements.generatedDrafts.addEventListener("click", handleDraftAction);
   document
     .querySelectorAll("[data-page]")
     .forEach((tab) =>
@@ -200,17 +194,64 @@ async function generateModelDrafts() {
       }),
     });
     elements.generationStatus.textContent = `${response.drafts.length} 个草稿 · ${response.llmFallback ? "LLM 超时，已回退规则草稿" : response.llmEnriched ? "LLM 已增强" : "规则生成"} · ${formatTimings(response.timings)}`;
+    generatedDraftState = new Map(
+      response.drafts.map((draft) => [draft.entity.name, draft.yaml]),
+    );
     elements.generatedDrafts.innerHTML = response.drafts
-      .map(
-        (draft) =>
-          `<article class="draft-result"><div><strong>${escapeHtml(draft.entity.title)}</strong><code>${escapeHtml(draft.entity.name)}</code><span>${draft.diagnostics.llmEnriched ? "LLM 已增强" : "规则生成"}</span></div>${(draft.diagnostics.warnings || []).map((warning) => `<p class="draft-warning">${escapeHtml(warning)}</p>`).join("")}<pre class="code">${escapeHtml(draft.yaml)}</pre><button class="tiny" data-copy-draft>复制草稿</button></article>`,
-      )
+      .map(renderGeneratedDraft)
       .join("");
   } catch (error) {
     elements.generationStatus.textContent = "生成失败";
     elements.generatedDrafts.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
   } finally {
     updateModelerSelection();
+  }
+}
+
+function renderGeneratedDraft(draft, open = false) {
+  const warnings = [
+    ...(draft.diagnostics.warnings || []),
+    ...(draft.diagnostics.llmWarnings || []),
+  ];
+  return `<details class="draft-result" data-draft="${escapeHtml(draft.entity.name)}"${open ? " open" : ""}><summary><div><strong>${escapeHtml(draft.entity.title)}</strong><code>${escapeHtml(draft.entity.name)}</code></div><span>${draft.diagnostics.llmEnriched ? "LLM 已增强" : draft.diagnostics.llmFallback ? "LLM 回退" : "规则生成"}</span></summary><div class="draft-body">${warnings.map((warning) => `<p class="draft-warning">${escapeHtml(warning)}</p>`).join("")}<textarea class="draft-editor" spellcheck="false">${escapeHtml(draft.yaml)}</textarea><div class="draft-validation" aria-live="polite">修改后请先校验。</div><div class="draft-actions"><button class="tiny" data-draft-action="copy">复制</button><button class="tiny secondary" data-draft-action="validate">校验</button><button class="tiny primary" data-draft-action="publish">发布</button></div></div></details>`;
+}
+
+async function handleDraftAction(event) {
+  const button = event.target.closest("[data-draft-action]");
+  if (!button) return;
+  const card = button.closest("[data-draft]");
+  const editor = card.querySelector(".draft-editor");
+  const status = card.querySelector(".draft-validation");
+  const action = button.dataset.draftAction;
+  if (action === "copy") {
+    await navigator.clipboard.writeText(editor.value);
+    button.textContent = "已复制";
+    return;
+  }
+  button.disabled = true;
+  status.className = "draft-validation pending";
+  status.textContent = action === "publish" ? "校验并发布中…" : "校验中…";
+  try {
+    const result = await api(
+      action === "publish"
+        ? "/api/modeler/publish"
+        : "/api/modeler/validate-draft",
+      { method: "POST", body: JSON.stringify({ yaml: editor.value }) },
+    );
+    status.className = "draft-validation ok";
+    status.textContent =
+      action === "publish"
+        ? `发布成功：${result.target || result.relativePath}${result.backupPath ? ` · 备份 ${result.backupPath}` : " · 新建文件"}`
+        : `校验通过：${result.replacing ? "将覆盖现有实体" : "将新增实体"} ${result.target}`;
+    generatedDraftState.set(card.dataset.draft, editor.value);
+    if (action === "publish") {
+      await Promise.all([loadSemanticModel(), loadSemanticSource()]);
+    }
+  } catch (error) {
+    status.className = "draft-validation bad";
+    status.textContent = error.message;
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -604,7 +645,27 @@ async function api(url, options = {}) {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-  const body = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+  let body;
+  if (contentType.includes("application/json")) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      throw new Error(`API 返回了无效 JSON（HTTP ${response.status}）`);
+    }
+  } else {
+    if (!response.ok) {
+      const routeMissing =
+        response.status === 404 && /Cannot (GET|POST|PUT|DELETE)/.test(text);
+      throw new Error(
+        routeMissing
+          ? `API 路由尚未加载，请重启 4100 服务：${url}`
+          : `API 返回非 JSON 响应（HTTP ${response.status}）：${text.slice(0, 160)}`,
+      );
+    }
+    throw new Error(`API 返回了非 JSON 响应：${url}`);
+  }
   if (!response.ok)
     throw new Error(
       body.error ||

@@ -84,7 +84,7 @@ function generateDrafts(tables) {
 }
 
 function draftYaml(draft) {
-  return YAML.stringify(draft, { lineWidth: 120 });
+  return YAML.stringify({ entity: draft.entity }, { lineWidth: 120 });
 }
 
 function classifyColumn(column) {

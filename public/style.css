@@ -407,29 +407,98 @@ td {
   padding-top: 8px;
 }
 .draft-result {
-  padding: 11px;
   border: 1px solid #29485f;
   border-radius: 10px;
   background: #091a29;
+  overflow: hidden;
 }
-.draft-result > div {
+.draft-result > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.draft-result > summary::-webkit-details-marker {
+  display: none;
+}
+.draft-result > summary::before {
+  content: "›";
+  color: #5ddcc4;
+  font-size: 20px;
+  transition: transform 0.15s;
+}
+.draft-result[open] > summary::before {
+  transform: rotate(90deg);
+}
+.draft-result > summary > div {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 8px;
+  min-width: 0;
 }
-.draft-result > div code {
+.draft-result > summary code {
   color: #59d9c1;
 }
-.draft-result > div span {
+.draft-result > summary > span {
   margin-left: auto;
   color: #7594aa;
   font-size: 10px;
 }
-.draft-result pre {
-  max-height: 380px;
+.draft-body {
+  padding: 0 12px 12px;
+  border-top: 1px solid #203b50;
+}
+.draft-editor {
+  width: 100%;
+  min-height: 430px;
+  margin-top: 9px;
+  resize: vertical;
+  padding: 12px;
+  color: #b9d2e3;
+  background: #06111d;
+  border: 1px solid #29475f;
+  border-radius: 9px;
+  outline: none;
   white-space: pre;
-  font-size: 11px;
+  tab-size: 2;
+  font:
+    11px/1.55 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.draft-editor:focus {
+  border-color: #42cfb4;
+  box-shadow: 0 0 0 3px rgba(66, 207, 180, 0.1);
+}
+.draft-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 9px;
+}
+.draft-actions .tiny {
+  margin: 0;
+}
+.draft-validation {
+  margin-top: 8px;
+  padding: 7px 9px;
+  color: #7895aa;
+  background: #071724;
+  border-radius: 7px;
+  font-size: 10px;
+}
+.draft-validation.pending {
+  color: #e7c177;
+}
+.draft-validation.ok {
+  color: #58e1c6;
+}
+.draft-validation.bad {
+  color: #ff8da3;
 }
 .draft-warning {
   color: #e8bd70;

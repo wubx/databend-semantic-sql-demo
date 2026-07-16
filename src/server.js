@@ -14,6 +14,10 @@ const {
 } = require("./databend-catalog");
 const { enrichDraftWithLlm } = require("./model-enricher");
 const { draftYaml, generateDrafts } = require("./model-generator");
+const {
+  prepareEntityPublication,
+  publishPreparedEntity,
+} = require("./model-publisher");
 const { modelerLogPath, observeModelGeneration } = require("./modeler-log");
 const { createPlan } = require("./planner");
 const { observeQuery, queryLogPath } = require("./query-log");
@@ -162,6 +166,36 @@ app.post(
       });
       throw error;
     }
+  }),
+);
+
+app.post(
+  "/api/modeler/validate-draft",
+  asyncHandler(async (req, res) => {
+    const prepared = prepareEntityPublication(req.body?.yaml);
+    res.json({
+      valid: true,
+      entity: prepared.entity.name,
+      replacing: prepared.replacing,
+      target: prepared.relativePath,
+    });
+  }),
+);
+
+app.post(
+  "/api/modeler/publish",
+  asyncHandler(async (req, res) => {
+    if (process.env.MODELER_PUBLISH_ENABLED !== "true")
+      return res.status(403).json({ error: "模型发布未启用" });
+    const prepared = prepareEntityPublication(req.body?.yaml);
+    const result = publishPreparedEntity(prepared);
+    res.json({
+      ok: true,
+      reviewRequired: false,
+      ...result,
+      restartRequired: true,
+      message: "模型已发布并完成旧文件备份；服务将在重新编译时加载新模型。",
+    });
   }),
 );
 
