@@ -63,6 +63,7 @@ reference:
 
 - [Field-by-field explanation](./docs/snowflake-semantic-view-reference.md)
 - [Snowflake vs. Cube and combined semantic-layer design](./docs/snowflake-vs-cube-combined-semantic-layer.md)
+- [Query observability JSONL format](./docs/query-observability-log.md)
 - [Original placeholder template](./references/snowflake-semantic-view.template.yaml)
 - [TPC-H order analytics example](./references/snowflake-tpch-order-analytics.example.yaml)
 
@@ -86,6 +87,12 @@ they require typed parameter validation.
 Runtime configuration and credentials are loaded from environment variables.
 The `.env` file and all `.env.*` variants except `.env.example` are ignored by
 Git. Never commit real Cube, Databend, or AI provider credentials.
+
+The demo writes one JSONL observation per plan and execution request to
+`logs/query-observability.jsonl` by default. Each record includes the original
+question, validated Cube Query, final SQL, stage timings, and execution outcome.
+See the [query observability log format](./docs/query-observability-log.md) for
+the schema, configuration, security considerations, and analysis commands.
 
 External AI requests can use:
 

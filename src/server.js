@@ -8,6 +8,7 @@ const { cubeHealth, executeCube } = require("./cube");
 const { explainDatabend, queryDatabend } = require("./databend");
 const { isEnabled, summarizeWithLlm } = require("./llm");
 const { createPlan } = require("./planner");
+const { observeQuery, queryLogPath } = require("./query-log");
 const { validateSql } = require("./sql-safety");
 
 const app = express();
@@ -44,6 +45,7 @@ app.get("/api/health", async (_req, res) => {
     checks,
     aiEnabled: isEnabled(),
     aiModel: isEnabled() ? process.env.AI_MODEL : null,
+    queryLogPath: queryLogPath(),
   });
 });
 
@@ -54,7 +56,12 @@ app.get("/api/query/examples", (_req, res) =>
 app.post(
   "/api/query/plan",
   asyncHandler(async (req, res) => {
-    res.json(await createPlan(req.body || {}));
+    res.locals.queryObservation = { operation: "plan", request: req.body };
+    const plan = await createPlan(req.body || {});
+    res.locals.queryObservation.plan = plan;
+    await observeQuery({ operation: "plan", request: req.body, plan });
+    res.locals.queryObservation.logged = true;
+    res.json(plan);
   }),
 );
 
@@ -79,10 +86,24 @@ app.post(
 app.post(
   "/api/query/execute",
   asyncHandler(async (req, res) => {
-    const requestStartedAt = performance.now();
+    res.locals.queryObservation = {
+      operation: "execute",
+      request: req.body,
+      startedAt: performance.now(),
+    };
+    const requestStartedAt = res.locals.queryObservation.startedAt;
     const plan = await createPlan(req.body || {});
-    if (!plan.supported) return res.status(422).json(plan);
-    if (!plan.validation.valid) return res.status(400).json(plan);
+    res.locals.queryObservation.plan = plan;
+    if (!plan.supported) {
+      await observeQuery({ operation: "execute", request: req.body, plan });
+      res.locals.queryObservation.logged = true;
+      return res.status(422).json(plan);
+    }
+    if (!plan.validation.valid) {
+      await observeQuery({ operation: "execute", request: req.body, plan });
+      res.locals.queryObservation.logged = true;
+      return res.status(400).json(plan);
+    }
 
     const startedAt = Date.now();
     if (plan.route === "semantic") {
@@ -101,6 +122,13 @@ app.post(
       };
       response.summary = await timedSummary(req.body?.question, plan, response);
       response.timings.totalMs = elapsed(requestStartedAt);
+      await observeQuery({
+        operation: "execute",
+        request: req.body,
+        plan,
+        response,
+      });
+      res.locals.queryObservation.logged = true;
       return res.json(response);
     }
 
@@ -122,6 +150,13 @@ app.post(
     };
     response.summary = await timedSummary(req.body?.question, plan, response);
     response.timings.totalMs = elapsed(requestStartedAt);
+    await observeQuery({
+      operation: "execute",
+      request: req.body,
+      plan,
+      response,
+    });
+    res.locals.queryObservation.logged = true;
     return res.json(response);
   }),
 );
@@ -132,6 +167,16 @@ app.get("*splat", (_req, res) =>
 
 app.use((error, _req, res, _next) => {
   console.error(error);
+  const context = res.locals.queryObservation;
+  if (context && !context.logged) {
+    const response = context.startedAt
+      ? { timings: { totalMs: elapsed(context.startedAt) } }
+      : undefined;
+    observeQuery({ ...context, response, error }).finally(() => {
+      res.status(500).json({ error: error.message || String(error) });
+    });
+    return;
+  }
   res.status(500).json({ error: error.message || String(error) });
 });
 

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 generated/
+logs/
 
 # Local configuration and secrets
 .env
