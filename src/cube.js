@@ -8,10 +8,23 @@ async function cubeRequest(path, query) {
   if (query) url.searchParams.set('query', JSON.stringify(query));
   const headers = {};
   if (process.env.CUBE_API_TOKEN) headers.Authorization = process.env.CUBE_API_TOKEN;
-  const response = await fetch(url, { headers, signal: AbortSignal.timeout(60000) });
-  const body = await response.json();
-  if (!response.ok || body.error) throw new Error(body.error || `Cube API 返回 HTTP ${response.status}`);
-  return body;
+  const deadline = Date.now() + Number(process.env.CUBE_QUERY_TIMEOUT_MS || 120000);
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error('Cube query timed out while waiting for completion');
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(Math.min(60000, remaining)) });
+    const body = await response.json();
+    if (response.ok && !body.error) return body;
+    if (body.error === 'Continue wait' && path === 'load') {
+      await delay(500);
+      continue;
+    }
+    throw new Error(body.error || `Cube API 返回 HTTP ${response.status}`);
+  }
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 async function getCubeSql(query) {

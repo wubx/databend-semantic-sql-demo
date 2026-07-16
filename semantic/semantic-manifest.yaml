@@ -86,6 +86,188 @@ entities:
         expr: "${CUBE}.o_orderstatus = 'F'"
         synonyms: [completed orders, fulfilled orders, 已完成订单]
 
+  - name: LineItem
+    title: 订单明细
+    description: TPC-H product line items shipped for customer orders.
+    source:
+      schema: tpch_100
+      table: lineitem
+
+    dimensions:
+      - name: orderKey
+        title: 订单编号
+        description: Identifier of the order containing this line item.
+        expr: l_orderkey
+        type: number
+        synonyms: [order id, 订单编号]
+
+      - name: partKey
+        title: 商品编号
+        description: Identifier of the ordered part.
+        expr: l_partkey
+        type: number
+        synonyms: [part id, product id, 商品编号]
+
+      - name: supplierKey
+        title: 供应商编号
+        description: Identifier of the supplier fulfilling the line item.
+        expr: l_suppkey
+        type: number
+        synonyms: [supplier id, 供应商编号]
+
+      - name: lineNumber
+        title: 明细行号
+        description: Position of the line item within its order.
+        expr: l_linenumber
+        type: number
+        synonyms: [line number, 明细行号]
+
+      - name: lineStatus
+        title: 明细状态
+        description: TPC-H processing status of a line item.
+        expr: l_linestatus
+        type: string
+        synonyms: [line status, 明细状态]
+        enum: [F, O]
+
+      - name: returnFlag
+        title: 退货标记
+        description: TPC-H return status flag.
+        expr: l_returnflag
+        type: string
+        synonyms: [return flag, 退货标记, 退货状态]
+        enum: [A, N, R]
+
+      - name: shipMode
+        title: 运输方式
+        description: Shipping mode used for a line item.
+        expr: l_shipmode
+        type: string
+        synonyms: [shipping mode, delivery mode, 运输方式]
+
+      - name: shipInstruction
+        title: 运输指令
+        description: Shipping instruction for a line item.
+        expr: l_shipinstruct
+        type: string
+        synonyms: [shipping instruction, 运输指令]
+
+    time_dimensions:
+      - name: shipDate
+        title: 发货日期
+        description: Date on which the line item was shipped.
+        expr: l_shipdate
+        type: time
+        synonyms: [ship date, shipping date, 发货日期, 发货时间]
+
+      - name: commitDate
+        title: 承诺日期
+        description: Date by which shipment was committed.
+        expr: l_commitdate
+        type: time
+        synonyms: [commit date, promised date, 承诺日期]
+
+      - name: receiptDate
+        title: 收货日期
+        description: Date on which the line item was received.
+        expr: l_receiptdate
+        type: time
+        synonyms: [receipt date, delivery date, 收货日期]
+
+    facts:
+      - name: quantity
+        title: 明细商品数量
+        description: Quantity recorded on an individual line item.
+        expr: l_quantity
+        type: decimal
+
+      - name: extendedPrice
+        title: 明细扩展价格
+        description: Extended price before discount and tax.
+        expr: l_extendedprice
+        type: decimal
+
+      - name: discountRate
+        title: 明细折扣率
+        description: Discount rate applied to an individual line item.
+        expr: l_discount
+        type: decimal
+
+      - name: taxRate
+        title: 明细税率
+        description: Tax rate applied to an individual line item.
+        expr: l_tax
+        type: decimal
+
+    metrics:
+      - name: count
+        title: 订单明细数量
+        description: Number of order line items.
+        type: count
+        expr: lineNumber
+        synonyms: [line item count, 订单明细数量, 明细行数量]
+
+      - name: totalQuantity
+        title: 发货商品数量
+        description: Sum of quantities across line items.
+        type: sum
+        expr: quantity
+        synonyms:
+          [
+            shipped quantity,
+            total quantity,
+            发货商品数量,
+            发货数量,
+            商品总数量,
+            销量,
+          ]
+
+      - name: grossAmount
+        title: 折扣前金额
+        description: Sum of extended prices before discount and tax.
+        type: sum
+        expr: extendedPrice
+        synonyms: [gross amount, extended price, 折扣前金额, 商品原价总额]
+
+      - name: discountAmount
+        title: 折扣金额
+        description: Sum of extended price multiplied by discount rate.
+        type: sum
+        expr: l_extendedprice * l_discount
+        synonyms: [discount amount, 折扣金额]
+
+      - name: discountedRevenue
+        title: 折扣后收入
+        description: Revenue after discount and before tax.
+        type: sum
+        expr: l_extendedprice * (1 - l_discount)
+        synonyms: [discounted revenue, net sales, 折扣后收入, 净销售额]
+
+      - name: chargedAmount
+        title: 含税收入
+        description: Revenue after discount and tax.
+        type: sum
+        expr: l_extendedprice * (1 - l_discount) * (1 + l_tax)
+        synonyms: [charged amount, revenue with tax, 含税收入]
+
+      - name: averageDiscount
+        title: 平均折扣率
+        description: Average discount rate across line items.
+        type: avg
+        expr: discountRate
+        synonyms: [average discount, avg discount, 平均折扣, 平均折扣率]
+
+    filters:
+      - name: delayedReceipt
+        title: 延迟收货明细
+        description: Line items received after their committed date.
+        expr: "${CUBE}.l_receiptdate > ${CUBE}.l_commitdate"
+        synonyms: [late receipt, delayed delivery, 延迟收货, 延迟交付]
+
+    extensions:
+      cube:
+        refresh_key: false
+
 verified_queries:
   - id: S1
     title: 订单总数
@@ -121,6 +303,21 @@ verified_queries:
       order:
         Orders.orderDate: asc
       limit: 120
+    verified_by: demo-team
+
+  - id: S4
+    title: 按年统计发货商品数量
+    question: 按年统计发货商品数量。
+    examples: [按年统计发货商品数量, 每年发货多少商品, 发货数量年度趋势]
+    route: semantic
+    cube_query:
+      measures: [LineItem.totalQuantity]
+      timeDimensions:
+        - dimension: LineItem.shipDate
+          granularity: year
+      order:
+        LineItem.shipDate: asc
+      limit: 100
     verified_by: demo-team
 
 ai_policy:

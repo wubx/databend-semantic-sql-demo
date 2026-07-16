@@ -1,6 +1,6 @@
-const YAML = require('yaml');
+const YAML = require("yaml");
 
-const { loadManifest } = require('./manifest');
+const { loadManifest } = require("./manifest");
 
 function compileManifest(manifest = loadManifest()) {
   return {
@@ -11,10 +11,12 @@ function compileManifest(manifest = loadManifest()) {
 }
 
 function compileCubeModel(manifest) {
-  const factsByEntity = new Map(manifest.entities.map((entity) => [
-    entity.name,
-    new Map((entity.facts || []).map((fact) => [fact.name, fact])),
-  ]));
+  const factsByEntity = new Map(
+    manifest.entities.map((entity) => [
+      entity.name,
+      new Map((entity.facts || []).map((fact) => [fact.name, fact])),
+    ]),
+  );
   const cubes = manifest.entities.map((entity) => {
     const cube = {
       name: entity.name,
@@ -22,11 +24,22 @@ function compileCubeModel(manifest) {
       description: entity.description,
     };
     if (entity.source.sql) cube.sql = entity.source.sql;
-    else cube.sql_table = [entity.source.catalog, entity.source.schema, entity.source.table].filter(Boolean).join('.');
+    else
+      cube.sql_table = [
+        entity.source.catalog,
+        entity.source.schema,
+        entity.source.table,
+      ]
+        .filter(Boolean)
+        .join(".");
 
     cube.dimensions = [
-      ...(entity.dimensions || []).map((dimension) => compileDimension(entity, dimension, false)),
-      ...(entity.time_dimensions || []).map((dimension) => compileDimension(entity, dimension, true)),
+      ...(entity.dimensions || []).map((dimension) =>
+        compileDimension(entity, dimension, false),
+      ),
+      ...(entity.time_dimensions || []).map((dimension) =>
+        compileDimension(entity, dimension, true),
+      ),
     ];
     cube.measures = (entity.metrics || []).map((metric) => {
       const fact = factsByEntity.get(entity.name).get(metric.expr);
@@ -36,20 +49,23 @@ function compileCubeModel(manifest) {
         description: metric.description,
         sql: fact?.expr || metric.expr,
         type: metric.type,
-        public: metric.access !== 'private',
+        public: metric.access !== "private",
         meta: semanticMeta(metric, { fact: fact?.name }),
       });
-      if (metric.type === 'count' && metric.name === 'count') delete measure.sql;
+      if (metric.type === "count" && metric.name === "count")
+        delete measure.sql;
       return measure;
     });
     if (entity.filters?.length) {
-      cube.segments = entity.filters.map((filter) => compact({
-        name: filter.name,
-        title: filter.title,
-        description: filter.description,
-        sql: filter.expr,
-        meta: semanticMeta(filter),
-      }));
+      cube.segments = entity.filters.map((filter) =>
+        compact({
+          name: filter.name,
+          title: filter.title,
+          description: filter.description,
+          sql: filter.expr,
+          meta: semanticMeta(filter),
+        }),
+      );
     }
 
     const joins = (manifest.relationships || [])
@@ -61,8 +77,13 @@ function compileCubeModel(manifest) {
       }));
     if (joins.length) cube.joins = joins;
 
+    const entityCubeExtension = entity.extensions?.cube || {};
     const cubeExtension = manifest.extensions?.cube || {};
-    if (cubeExtension.refresh_key) cube.refresh_key = cubeExtension.refresh_key;
+    const refreshKey =
+      entityCubeExtension.refresh_key === false
+        ? undefined
+        : (entityCubeExtension.refresh_key ?? cubeExtension.refresh_key);
+    if (refreshKey) cube.refresh_key = refreshKey;
     return compact(cube);
   });
   return { cubes };
@@ -74,50 +95,59 @@ function compileDimension(entity, dimension, timeDimension) {
     title: dimension.title,
     description: dimension.description,
     sql: dimension.expr,
-    type: timeDimension ? 'time' : dimension.type,
+    type: timeDimension ? "time" : dimension.type,
     primary_key: entity.keys?.primary === dimension.name,
-    public: dimension.access !== 'private',
+    public: dimension.access !== "private",
     meta: semanticMeta(dimension, { enum: dimension.enum }),
   });
 }
 
 function compileJoinSql(relationship) {
-  if (relationship.join_type && relationship.join_type !== 'equality') {
-    throw new Error(`relationship ${relationship.name} requires explicit sql for ${relationship.join_type}`);
+  if (relationship.join_type && relationship.join_type !== "equality") {
+    throw new Error(
+      `relationship ${relationship.name} requires explicit sql for ${relationship.join_type}`,
+    );
   }
   if (!Array.isArray(relationship.columns) || !relationship.columns.length) {
-    throw new Error(`relationship ${relationship.name} requires columns or explicit sql`);
+    throw new Error(
+      `relationship ${relationship.name} requires columns or explicit sql`,
+    );
   }
   return relationship.columns
-    .map((column) => `\${CUBE}.${column.from} = \${${relationship.to}}.${column.to}`)
-    .join(' AND ');
+    .map(
+      (column) =>
+        `\${CUBE}.${column.from} = \${${relationship.to}}.${column.to}`,
+    )
+    .join(" AND ");
 }
 
 function compileMemberCatalog(manifest) {
   const members = [];
   for (const entity of manifest.entities) {
     const definitions = [
-      ['dimension', entity.dimensions || []],
-      ['time_dimension', entity.time_dimensions || []],
-      ['fact', entity.facts || []],
-      ['measure', entity.metrics || []],
-      ['filter', entity.filters || []],
+      ["dimension", entity.dimensions || []],
+      ["time_dimension", entity.time_dimensions || []],
+      ["fact", entity.facts || []],
+      ["measure", entity.metrics || []],
+      ["filter", entity.filters || []],
     ];
     for (const [kind, items] of definitions) {
       for (const item of items) {
-        members.push(compact({
-          member: `${entity.name}.${item.name}`,
-          entity: entity.name,
-          kind,
-          title: item.title,
-          description: item.description,
-          synonyms: item.synonyms || [],
-          type: item.type,
-          enum: item.enum,
-          public: item.access !== 'private',
-          owner: manifest.metadata.owner,
-          tags: manifest.metadata.tags,
-        }));
+        members.push(
+          compact({
+            member: `${entity.name}.${item.name}`,
+            entity: entity.name,
+            kind,
+            title: item.title,
+            description: item.description,
+            synonyms: item.synonyms || [],
+            type: item.type,
+            enum: item.enum,
+            public: item.access !== "private",
+            owner: manifest.metadata.owner,
+            tags: manifest.metadata.tags,
+          }),
+        );
       }
     }
   }
@@ -151,7 +181,11 @@ function semanticMeta(item, extra = {}) {
 }
 
 function compact(value) {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== null));
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([, item]) => item !== undefined && item !== null,
+    ),
+  );
 }
 
 function stringifyCubeModel(model) {

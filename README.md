@@ -16,6 +16,7 @@ Natural language
 - `S1` — Total order count through Cube
 - `S2` — Order amount by status through Cube
 - `S3` — Monthly order amount trend through Cube
+- `S4` — Yearly shipped quantity through Cube
 - `Q1` — TPC-H pricing summary SQL
 - `Q6` — Parameterized forecasting revenue SQL
 - `Q21` — Supplier waiting SQL with `EXISTS` and `NOT EXISTS`
