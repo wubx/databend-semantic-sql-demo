@@ -38,8 +38,10 @@ const {
   readSemanticSourceFile,
 } = require("./semantic-source-files");
 const {
+  deleteSemanticSource,
   saveSemanticSource,
   validateSemanticSource,
+  validateSemanticSourceDeletion,
 } = require("./semantic-source-editor");
 
 const app = express();
@@ -116,6 +118,25 @@ app.post(
       String(req.body?.file),
       req.body?.content,
     );
+    const gateway = getSemanticGateway();
+    if (typeof gateway.reset === "function") gateway.reset(assembleManifest());
+    res.json({ ok: true, ...result, compilerReloaded: true });
+  }),
+);
+
+app.post(
+  "/api/semantic-model/source/delete/validate",
+  asyncHandler(async (req, res) => {
+    res.json(await validateSemanticSourceDeletion(String(req.body?.file)));
+  }),
+);
+
+app.post(
+  "/api/semantic-model/source/delete",
+  asyncHandler(async (req, res) => {
+    if (process.env.MODELER_PUBLISH_ENABLED !== "true")
+      return res.status(403).json({ error: "模型发布未启用" });
+    const result = await deleteSemanticSource(String(req.body?.file));
     const gateway = getSemanticGateway();
     if (typeof gateway.reset === "function") gateway.reset(assembleManifest());
     res.json({ ok: true, ...result, compilerReloaded: true });

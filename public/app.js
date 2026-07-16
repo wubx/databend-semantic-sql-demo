@@ -45,6 +45,7 @@ const elements = Object.fromEntries(
     "cancelSourceEdit",
     "validateSource",
     "saveSource",
+    "deleteSource",
     "copySource",
     "downloadSource",
     "semanticGeneratorView",
@@ -116,6 +117,7 @@ async function boot() {
   elements.saveSource.addEventListener("click", () =>
     submitSemanticSource(true),
   );
+  elements.deleteSource.addEventListener("click", deleteCurrentSemanticSource);
   elements.downloadSource.addEventListener("click", downloadSemanticSource);
   elements.sourceFileList.addEventListener("click", (event) => {
     const button = event.target.closest("[data-source-file]");
@@ -335,7 +337,8 @@ async function loadSemanticSource(file = "compiled") {
 }
 
 function setSourceEditing(editing) {
-  const editable = selectedSourceFile === "relationships.yaml";
+  const editable = selectedSourceFile !== "compiled";
+  const deletable = selectedSourceFile.startsWith("entities/");
   sourceEditing = editable && editing;
   elements.semanticSource.classList.toggle("hidden", sourceEditing);
   elements.semanticSourceEditor.classList.toggle("hidden", !sourceEditing);
@@ -343,7 +346,44 @@ function setSourceEditing(editing) {
   elements.cancelSourceEdit.classList.toggle("hidden", !sourceEditing);
   elements.validateSource.classList.toggle("hidden", !sourceEditing);
   elements.saveSource.classList.toggle("hidden", !sourceEditing);
+  elements.deleteSource.classList.toggle("hidden", !deletable || sourceEditing);
   elements.sourceEditStatus.classList.add("hidden");
+}
+
+async function deleteCurrentSemanticSource() {
+  if (!selectedSourceFile.startsWith("entities/")) return;
+  const entity = semanticSourceFiles.find(
+    (file) => file.id === selectedSourceFile,
+  );
+  if (
+    !confirm(
+      `确认删除 ${entity?.path || selectedSourceFile}？\n\n系统会先做完整模型和 Cube 编译校验，并备份实体文件和 model.yaml。被关系或认证查询引用的实体不能删除。`,
+    )
+  )
+    return;
+  elements.deleteSource.disabled = true;
+  elements.sourceEditStatus.className = "source-edit-status pending";
+  elements.sourceEditStatus.textContent = "正在验证删除影响…";
+  try {
+    await api("/api/semantic-model/source/delete/validate", {
+      method: "POST",
+      body: JSON.stringify({ file: selectedSourceFile }),
+    });
+    const result = await api("/api/semantic-model/source/delete", {
+      method: "POST",
+      body: JSON.stringify({ file: selectedSourceFile }),
+    });
+    selectedSourceFile = "compiled";
+    await Promise.all([loadSemanticModel(), loadSemanticSourceFiles()]);
+    elements.sourceEditStatus.className = "source-edit-status ok";
+    elements.sourceEditStatus.textContent = `已删除 ${result.deleted} · 实体备份 ${result.backupPath} · model 备份 ${result.modelBackupPath}`;
+    elements.sourceEditStatus.classList.remove("hidden");
+  } catch (error) {
+    elements.sourceEditStatus.className = "source-edit-status bad";
+    elements.sourceEditStatus.textContent = error.message;
+  } finally {
+    elements.deleteSource.disabled = false;
+  }
 }
 
 async function submitSemanticSource(save) {
@@ -499,7 +539,7 @@ const kindLabels = {
   measure: "指标",
   dimension: "维度",
   time_dimension: "时间",
-  segment: "分群",
+  segment: "分组",
   fact: "事实字段",
 };
 

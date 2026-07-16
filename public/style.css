@@ -177,6 +177,14 @@ button {
   color: #04101b;
   font-weight: 800;
 }
+.danger {
+  color: #ffd6de;
+  background: #6f2638;
+  border-color: #9b4256;
+}
+.danger:hover {
+  background: #8a3047;
+}
 .secondary {
   background: #122a40;
   color: #cae0f5;

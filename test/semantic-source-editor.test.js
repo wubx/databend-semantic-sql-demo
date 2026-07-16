@@ -4,8 +4,18 @@ const fs = require("node:fs");
 
 const path = require("node:path");
 
-const { validateSemanticSource } = require("../src/semantic-source-editor");
+const {
+  validateSemanticSource,
+  validateSemanticSourceDeletion,
+} = require("../src/semantic-source-editor");
 const { DEFAULT_MODEL_PATH } = require("../src/semantic-assembler");
+
+process.env.CUBE_REPOSITORY_PATH ||= path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "cube",
+);
 
 const relationshipsPath = require("node:path").join(
   require("node:path").dirname(DEFAULT_MODEL_PATH),
@@ -13,21 +23,37 @@ const relationshipsPath = require("node:path").join(
 );
 
 test("validates relationships through full manifest and Cube compilation", async () => {
-  process.env.CUBE_REPOSITORY_PATH ||= path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "cube",
-  );
   const content = fs.readFileSync(relationshipsPath, "utf8");
   const result = await validateSemanticSource("relationships.yaml", content);
   assert.equal(result.valid, true);
   assert.equal(result.compiled, true);
-  assert.equal(result.relationships, 6);
+  assert.equal(result.relationships, 9);
   assert.ok(result.cubes.includes("Orders"));
 });
 
-test("rejects invalid and non-editable source files", async () => {
+test("allows editing all source YAML and protects referenced entity deletion", async () => {
+  const ordersPath = path.join(
+    path.dirname(DEFAULT_MODEL_PATH),
+    "entities",
+    "orders.yaml",
+  );
+  const result = await validateSemanticSource(
+    "entities/orders.yaml",
+    fs.readFileSync(ordersPath, "utf8"),
+  );
+  assert.equal(result.valid, true);
+  assert.equal(result.entities, 8);
+  await assert.rejects(
+    validateSemanticSourceDeletion("entities/orders.yaml"),
+    /unknown entity|unknown member/,
+  );
+  await assert.rejects(
+    validateSemanticSourceDeletion("model.yaml"),
+    /不能删除/,
+  );
+});
+
+test("rejects invalid and unknown source files", async () => {
   await assert.rejects(
     validateSemanticSource(
       "relationships.yaml",
@@ -36,7 +62,7 @@ test("rejects invalid and non-editable source files", async () => {
     /unknown entity/,
   );
   await assert.rejects(
-    validateSemanticSource("entities/orders.yaml", "entity: {}"),
-    /只允许在线维护 relationships.yaml/,
+    validateSemanticSource("unknown.yaml", "value: true"),
+    /未知或不可编辑/,
   );
 });
