@@ -1,7 +1,7 @@
 entity:
   name: Nation
   title: 国家
-  description: TPC-H nations used by customers and suppliers.
+  description: TPC-H SF100 决策支持测试数据中的国家地理维度。每行代表一个国家，可通过区域编号识别其关联区域，用于客户、供应商、订单金额和物流运输等分析中的地理分组；不代表真实生产数据。
   source:
     schema: tpch_100
     table: nation
@@ -13,34 +13,56 @@ entity:
       expr: n_nationkey
       type: number
       synonyms:
-        - nation id
-        - country id
         - 国家编号
+        - 国家标识
+        - 国家ID
+        - nation key
+        - nation id
+        - country key
+        - country id
+      description: 国家记录的唯一编号，也是国家实体的主键。
+      business_definition: 用于唯一标识 TPC-H 国家记录的编号，对应源字段 n_nationkey。
     - name: name
       title: 国家名称
       expr: n_name
       type: string
       synonyms:
-        - nation
-        - country
-        - 国家
         - 国家名称
+        - 国家
+        - nation name
+        - nation
+        - country name
+        - country
+      description: TPC-H 国家记录中的国家名称，用作地理分组和展示维度。
+      business_definition: 国家的名称文本，对应源字段 n_name。其名称来自 TPC-H 测试数据，不应直接视为真实生产环境中的标准国家译名。
     - name: regionKey
       title: 区域编号
       expr: n_regionkey
       type: number
       synonyms:
-        - region id
         - 区域编号
+        - 区域标识
+        - 区域ID
+        - region key
+        - region id
+        - region identifier
+      description: 国家所属区域的关联编号。
+      business_definition: 用于标识国家所关联区域的编号，对应源字段 n_regionkey；多个国家可以关联同一个区域。
   metrics:
     - name: count
       title: 国家数量
-      description: Number of nations.
+      description: 按国家编号统计的国家地理记录数量。
       type: count
       expr: nationKey
       synonyms:
-        - nation count
         - 国家数量
+        - 国家数
+        - 国家记录数
+        - nation count
+        - number of nations
+        - country count
+        - number of countries
+      business_definition: 对 nationKey 进行计数，表示当前分析范围内的国家记录数量。该指标仅表示地理记录数量。
   extensions:
     cube:
       refresh_key: false

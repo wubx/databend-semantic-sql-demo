@@ -1,7 +1,7 @@
 entity:
   name: Region
   title: 区域
-  description: TPC-H geographic sales regions.
+  description: TPC-H SF100 决策支持测试数据中的地理区域维度，用于按区域对相关数据进行分组分析；该数据不代表真实生产环境或实际组织区域。
   source:
     schema: tpch_100
     table: region
@@ -13,26 +13,41 @@ entity:
       expr: r_regionkey
       type: number
       synonyms:
-        - region id
         - 区域编号
+        - 区域 ID
+        - 区域标识
+        - region key
+        - region id
+        - region identifier
+      description: 区域记录的主键标识。
+      business_definition: 用于唯一标识区域表中一条区域记录的编号。
     - name: name
       title: 区域名称
       expr: r_name
       type: string
       synonyms:
-        - region
-        - region name
         - 区域
         - 区域名称
+        - 地理区域
+        - region
+        - region name
+        - geographic region
+      description: 区域记录的名称，用于地理区域展示和分组分析。
+      business_definition: TPC-H 测试数据中用于表示区域名称的文本字段，不应默认解释为真实组织或生产环境中的区域划分。
   metrics:
     - name: count
       title: 区域数量
-      description: Number of regions.
+      description: 根据区域编号统计的区域记录数量。
       type: count
       expr: regionKey
       synonyms:
-        - region count
         - 区域数量
+        - 区域数
+        - 区域记录数
+        - region count
+        - number of regions
+        - region record count
+      business_definition: 区域维度中的地理记录计数，仅表示区域记录的数量。
   extensions:
     cube:
       refresh_key: false
