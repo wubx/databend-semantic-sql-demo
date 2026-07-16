@@ -17,88 +17,152 @@
             Databend SQL。
           </p>
         </div>
-        <div id="health" class="health">正在检查服务…</div>
+        <div class="header-actions">
+          <nav class="page-tabs" aria-label="页面导航">
+            <button class="page-tab active" data-page="query">
+              查询工作台
+            </button>
+            <button class="page-tab" data-page="semantic">语义层</button>
+          </nav>
+          <div id="health" class="health">正在检查服务…</div>
+        </div>
       </header>
 
-      <section class="composer card">
-        <div class="mode-row">
-          <label
-            ><input type="radio" name="mode" value="auto" checked /> 自动</label
-          >
-          <label
-            ><input type="radio" name="mode" value="semantic" /> Semantic</label
-          >
-          <label><input type="radio" name="mode" value="tpch" /> TPC-H</label>
-          <span class="mode-separator"></span>
-          <label
-            ><input type="radio" name="planner" value="auto" checked /> AI +
-            自动回退</label
-          >
-          <label
-            ><input type="radio" name="planner" value="deterministic" />
-            仅规则</label
-          >
-        </div>
-        <textarea
-          id="question"
-          rows="3"
-          placeholder="例如：按订单状态统计订单数量和金额"
-        ></textarea>
-        <div id="examples" class="examples"></div>
-        <div class="actions">
-          <button id="plan" class="secondary">生成计划</button>
-          <button id="run" class="primary">执行查询</button>
-        </div>
-        <p id="error" class="error hidden"></p>
-      </section>
+      <div id="queryPage" class="page-view active">
+        <section class="composer card">
+          <div class="mode-row">
+            <label
+              ><input type="radio" name="mode" value="auto" checked />
+              自动</label
+            >
+            <label
+              ><input type="radio" name="mode" value="semantic" />
+              Semantic</label
+            >
+            <label><input type="radio" name="mode" value="tpch" /> TPC-H</label>
+            <span class="mode-separator"></span>
+            <label
+              ><input type="radio" name="planner" value="auto" checked /> AI +
+              自动回退</label
+            >
+            <label
+              ><input type="radio" name="planner" value="deterministic" />
+              仅规则</label
+            >
+          </div>
+          <textarea
+            id="question"
+            rows="3"
+            placeholder="例如：按订单状态统计订单数量和金额"
+          ></textarea>
+          <div id="examples" class="examples"></div>
+          <div class="actions">
+            <button id="plan" class="secondary">生成计划</button>
+            <button id="run" class="primary">执行查询</button>
+          </div>
+          <p id="error" class="error hidden"></p>
+        </section>
 
-      <section class="grid">
-        <article class="card">
-          <div class="card-title">
-            <span>查询理解</span><span id="route" class="badge">等待输入</span>
-          </div>
-          <div id="interpretation" class="empty">
-            输入自然语言问题后，这里会展示路由、认证查询和参数。
-          </div>
-        </article>
-        <article class="card">
-          <div class="card-title">
-            <span>Cube Query</span
-            ><span class="badge subtle">Semantic JSON</span>
-          </div>
-          <pre id="cubeQuery" class="code">尚未生成</pre>
-        </article>
-      </section>
+        <section class="grid">
+          <article class="card">
+            <div class="card-title">
+              <span>查询理解</span
+              ><span id="route" class="badge">等待输入</span>
+            </div>
+            <div id="interpretation" class="empty">
+              输入自然语言问题后，这里会展示路由、认证查询和参数。
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-title">
+              <span>Cube Query</span
+              ><span class="badge subtle">Semantic JSON</span>
+            </div>
+            <pre id="cubeQuery" class="code">尚未生成</pre>
+          </article>
+        </section>
 
-      <section class="card sql-card">
-        <div class="card-title">
-          <span>生成的 Databend SQL</span>
+        <section class="card sql-card">
+          <div class="card-title">
+            <span>生成的 Databend SQL</span>
+            <div>
+              <span id="validation" class="badge">未验证</span
+              ><button id="explain" class="tiny" disabled>EXPLAIN</button
+              ><button id="executeSql" class="tiny primary" disabled>
+                执行 SQL
+              </button>
+            </div>
+          </div>
+          <pre id="sql" class="code sql">尚未生成</pre>
+          <div id="explainResult" class="explain hidden"></div>
+        </section>
+
+        <section id="summaryCard" class="card summary-card hidden">
+          <div class="card-title">
+            <span>AI 结果解读</span
+            ><span class="badge subtle">基于真实结果</span>
+          </div>
+          <div id="summary" class="summary"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">
+            <span>真实查询结果</span
+            ><span id="metrics" class="badge subtle">等待执行</span>
+          </div>
+          <div id="result" class="empty">执行查询后显示结果。</div>
+        </section>
+      </div>
+
+      <div id="semanticPage" class="page-view">
+        <section class="semantic-hero card">
           <div>
-            <span id="validation" class="badge">未验证</span
-            ><button id="explain" class="tiny" disabled>EXPLAIN</button
-            ><button id="executeSql" class="tiny primary" disabled>
-              执行 SQL
-            </button>
+            <p class="eyebrow">SEMANTIC MODEL EXPLORER</p>
+            <h2>业务语义层</h2>
+            <p id="semanticDescription" class="subtitle">正在加载语义模型…</p>
           </div>
-        </div>
-        <pre id="sql" class="code sql">尚未生成</pre>
-        <div id="explainResult" class="explain hidden"></div>
-      </section>
+          <div id="semanticStats" class="semantic-stats"></div>
+        </section>
 
-      <section id="summaryCard" class="card summary-card hidden">
-        <div class="card-title">
-          <span>AI 结果解读</span><span class="badge subtle">基于真实结果</span>
-        </div>
-        <div id="summary" class="summary"></div>
-      </section>
+        <section class="semantic-layout">
+          <aside class="card semantic-sidebar">
+            <label class="search-label" for="semanticSearch"
+              >搜索语义成员</label
+            >
+            <input
+              id="semanticSearch"
+              class="semantic-search"
+              type="search"
+              placeholder="名称、说明、同义词…"
+            />
+            <div id="kindFilters" class="kind-filters"></div>
+            <div id="entityList" class="entity-list"></div>
+          </aside>
 
-      <section class="card">
-        <div class="card-title">
-          <span>真实查询结果</span
-          ><span id="metrics" class="badge subtle">等待执行</span>
-        </div>
-        <div id="result" class="empty">执行查询后显示结果。</div>
-      </section>
+          <div class="semantic-main">
+            <section class="card relationship-card">
+              <div class="card-title">
+                <span>实体关系</span
+                ><span id="relationshipCount" class="badge subtle"></span>
+              </div>
+              <div id="relationshipGraph" class="relationship-graph"></div>
+            </section>
+            <section class="card">
+              <div class="card-title">
+                <span id="entityHeading">语义成员</span
+                ><span id="memberCount" class="badge subtle"></span>
+              </div>
+              <div id="memberGrid" class="member-grid"></div>
+            </section>
+            <section class="card verified-card">
+              <div class="card-title">
+                <span>认证查询</span><span class="badge">可直接提问</span>
+              </div>
+              <div id="verifiedQueryList" class="verified-query-list"></div>
+            </section>
+          </div>
+        </section>
+      </div>
     </main>
     <script src="/app.js"></script>
   </body>

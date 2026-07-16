@@ -8,6 +8,7 @@ const { explainDatabend, queryDatabend } = require("./databend");
 const { isEnabled, summarizeWithLlm } = require("./llm");
 const { createPlan } = require("./planner");
 const { observeQuery, queryLogPath } = require("./query-log");
+const { buildSemanticView } = require("./semantic-view");
 const {
   getSemanticGateway,
   semanticGatewayMode,
@@ -57,6 +58,8 @@ app.get("/api/health", async (_req, res) => {
 app.get("/api/query/examples", (_req, res) =>
   res.json({ queries: listQueries() }),
 );
+
+app.get("/api/semantic-model", (_req, res) => res.json(buildSemanticView()));
 
 app.post(
   "/api/query/plan",

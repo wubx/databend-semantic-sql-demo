@@ -18,18 +18,64 @@ const elements = Object.fromEntries(
     "metrics",
     "summaryCard",
     "summary",
+    "queryPage",
+    "semanticPage",
+    "semanticDescription",
+    "semanticStats",
+    "semanticSearch",
+    "kindFilters",
+    "entityList",
+    "relationshipCount",
+    "relationshipGraph",
+    "entityHeading",
+    "memberCount",
+    "memberGrid",
+    "verifiedQueryList",
   ].map((id) => [id, document.getElementById(id)]),
 );
 let currentPlan;
+let semanticModel;
+let selectedEntity = "all";
+let selectedKind = "all";
 
 boot();
 
 async function boot() {
-  await Promise.all([loadHealth(), loadExamples()]);
+  await Promise.all([loadHealth(), loadExamples(), loadSemanticModel()]);
   elements.plan.addEventListener("click", () => plan(false));
   elements.run.addEventListener("click", () => plan(true));
   elements.explain.addEventListener("click", explain);
   elements.executeSql.addEventListener("click", executePlannedSql);
+  elements.semanticSearch.addEventListener("input", renderMembers);
+  elements.kindFilters.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-kind]");
+    if (!button) return;
+    selectedKind = button.dataset.kind;
+    renderKindFilters();
+    renderMembers();
+  });
+  elements.entityList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-entity]");
+    if (!button) return;
+    selectedEntity = button.dataset.entity;
+    renderEntities();
+    renderMembers();
+  });
+  document
+    .querySelectorAll("[data-page]")
+    .forEach((tab) =>
+      tab.addEventListener("click", () => showPage(tab.dataset.page)),
+    );
+}
+
+function showPage(page) {
+  document
+    .querySelectorAll("[data-page]")
+    .forEach((tab) =>
+      tab.classList.toggle("active", tab.dataset.page === page),
+    );
+  elements.queryPage.classList.toggle("active", page === "query");
+  elements.semanticPage.classList.toggle("active", page === "semantic");
 }
 
 async function loadHealth() {
@@ -57,6 +103,158 @@ async function loadExamples() {
     const button = event.target.closest("[data-question]");
     if (button) elements.question.value = button.dataset.question;
   });
+}
+
+async function loadSemanticModel() {
+  semanticModel = await api("/api/semantic-model");
+  elements.semanticDescription.textContent = `${semanticModel.metadata.description} · Owner: ${semanticModel.metadata.owner}`;
+  const stats = [
+    [semanticModel.stats.entities, "实体"],
+    [semanticModel.stats.publicMembers, "公开成员"],
+    [semanticModel.stats.measures, "指标"],
+    [semanticModel.stats.relationships, "关系"],
+    [semanticModel.stats.verifiedQueries, "认证查询"],
+  ];
+  elements.semanticStats.innerHTML = stats
+    .map(
+      ([value, label]) =>
+        `<div><strong>${value}</strong><span>${label}</span></div>`,
+    )
+    .join("");
+  renderKindFilters();
+  renderEntities();
+  renderRelationships();
+  renderMembers();
+  renderVerifiedQueries();
+}
+
+const kindLabels = {
+  all: "全部",
+  measure: "指标",
+  dimension: "维度",
+  time_dimension: "时间",
+  segment: "分群",
+  fact: "事实字段",
+};
+
+function renderKindFilters() {
+  elements.kindFilters.innerHTML = Object.entries(kindLabels)
+    .map(
+      ([kind, label]) =>
+        `<button class="kind-filter${kind === selectedKind ? " active" : ""}" data-kind="${kind}">${label}</button>`,
+    )
+    .join("");
+}
+
+function renderEntities() {
+  const entities = [
+    {
+      name: "all",
+      title: "全部实体",
+      members: semanticModel.entities.flatMap((entity) => entity.members),
+    },
+    ...semanticModel.entities,
+  ];
+  elements.entityList.innerHTML = entities
+    .map((entity) => {
+      const measures = entity.members.filter(
+        (member) => member.kind === "measure",
+      ).length;
+      return `<button class="entity-item${entity.name === selectedEntity ? " active" : ""}" data-entity="${entity.name}"><span><strong>${escapeHtml(entity.title)}</strong><small>${escapeHtml(entity.name === "all" ? "完整语义模型" : entity.name)}</small></span><span class="entity-count">${entity.members.length}<small>${measures} 指标</small></span></button>`;
+    })
+    .join("");
+}
+
+function renderRelationships() {
+  elements.relationshipCount.textContent = `${semanticModel.relationships.length} 条关系`;
+  elements.relationshipGraph.innerHTML = semanticModel.relationships
+    .map((relationship) => {
+      const columns = relationship.columns
+        .map((column) => `${column.from} = ${column.to}`)
+        .join(" · ");
+      return `<div class="relationship"><button data-open-entity="${relationship.from}">${escapeHtml(relationship.from)}</button><span class="relationship-line"><small>${formatCardinality(relationship.cardinality)}</small><i></i></span><button data-open-entity="${relationship.to}">${escapeHtml(relationship.to)}</button><code>${escapeHtml(columns || relationship.sql || "自定义关系")}</code></div>`;
+    })
+    .join("");
+  elements.relationshipGraph.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-open-entity]");
+    if (!button) return;
+    selectedEntity = button.dataset.openEntity;
+    renderEntities();
+    renderMembers();
+  });
+}
+
+function renderMembers() {
+  if (!semanticModel) return;
+  const entity =
+    selectedEntity === "all"
+      ? null
+      : semanticModel.entities.find((item) => item.name === selectedEntity);
+  const search = elements.semanticSearch.value.trim().toLowerCase();
+  const members = (
+    entity
+      ? entity.members
+      : semanticModel.entities.flatMap((item) => item.members)
+  )
+    .filter((member) => selectedKind === "all" || member.kind === selectedKind)
+    .filter(
+      (member) =>
+        !search ||
+        [member.id, member.title, member.description, ...member.synonyms]
+          .join(" ")
+          .toLowerCase()
+          .includes(search),
+    );
+  elements.entityHeading.textContent = entity
+    ? `${entity.title} · ${entity.name}`
+    : "全部语义成员";
+  elements.memberCount.textContent = `${members.length} 个成员`;
+  elements.memberGrid.innerHTML = members.length
+    ? members.map(renderMemberCard).join("")
+    : '<div class="empty">没有找到匹配的语义成员。</div>';
+}
+
+function renderMemberCard(member) {
+  const badges = [
+    kindLabels[member.kind],
+    member.type,
+    member.primaryKey ? "主键" : null,
+    member.public ? "公开" : "私有",
+  ].filter(Boolean);
+  const enumValues = member.enum.length
+    ? `<div class="member-detail"><span>可选值</span><div>${member.enum.map((value) => `<code>${escapeHtml(value)}</code>`).join(" ")}</div></div>`
+    : "";
+  const synonyms = member.synonyms.length
+    ? `<div class="member-detail"><span>业务说法</span><p>${member.synonyms.map(escapeHtml).join(" · ")}</p></div>`
+    : "";
+  const usage = member.usedBy.length
+    ? `<div class="member-detail"><span>认证查询</span><p>${member.usedBy.map((query) => escapeHtml(`${query.id} ${query.title}`)).join(" · ")}</p></div>`
+    : "";
+  return `<article class="member-card ${member.public ? "" : "private"}"><div class="member-card-head"><div><h3>${escapeHtml(member.title)}</h3><code>${escapeHtml(member.id)}</code></div><div class="member-badges">${badges.map((badge) => `<span>${escapeHtml(badge)}</span>`).join("")}</div></div><p>${escapeHtml(member.description || "暂无业务说明")}</p><div class="member-detail"><span>Databend 表达式</span><code>${escapeHtml(member.expression)}</code></div>${enumValues}${synonyms}${usage}</article>`;
+}
+
+function renderVerifiedQueries() {
+  elements.verifiedQueryList.innerHTML = semanticModel.verifiedQueries
+    .map(
+      (query) =>
+        `<article><div><span>${escapeHtml(query.id)}</span><strong>${escapeHtml(query.title)}</strong><p>${escapeHtml(query.question)}</p></div><button class="tiny" data-ask-question="${escapeHtml(query.question)}">去查询</button></article>`,
+    )
+    .join("");
+  elements.verifiedQueryList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-ask-question]");
+    if (!button) return;
+    elements.question.value = button.dataset.askQuestion;
+    showPage("query");
+    elements.question.focus();
+  });
+}
+
+function formatCardinality(value) {
+  return (
+    { many_to_one: "多对一", one_to_many: "一对多", one_to_one: "一对一" }[
+      value
+    ] || value
+  );
 }
 
 async function plan(execute) {

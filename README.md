@@ -56,6 +56,19 @@ Run tests:
 npm test
 ```
 
+## Semantic model explorer
+
+Open `http://localhost:4100` and select **语义层** to inspect the live Portable
+Semantic Manifest as a business-facing catalog. It shows searchable entities,
+measures, dimensions, time dimensions, segments, Databend expressions,
+synonyms, enum values, privacy, relationships, and certified-query usage.
+
+The backing endpoint is:
+
+```text
+GET /api/semantic-model
+```
+
 ## Semantic model references
 
 Snowflake's Cortex Analyst semantic-view format is preserved as an architecture
