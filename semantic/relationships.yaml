@@ -47,3 +47,27 @@ relationships:
     columns:
       - from: l_suppkey
         to: s_suppkey
+  - name: lineitem_part
+    from: LineItem
+    to: Part
+    cardinality: many_to_one
+    sql: '"line_item".l_partkey = "part".p_partkey'
+    columns:
+      - from: l_partkey
+        to: p_partkey
+  - name: partsupp_part
+    from: Partsupp
+    to: Part
+    cardinality: many_to_one
+    sql: '"partsupp".ps_partkey = "part".p_partkey'
+    columns:
+      - from: ps_partkey
+        to: p_partkey
+  - name: partsupp_supplier
+    from: Partsupp
+    to: Supplier
+    cardinality: many_to_one
+    sql: '"partsupp".ps_suppkey = "supplier".s_suppkey'
+    columns:
+      - from: ps_suppkey
+        to: s_suppkey

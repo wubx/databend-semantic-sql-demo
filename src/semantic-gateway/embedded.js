@@ -83,6 +83,11 @@ class EmbeddedCompilerGateway {
     return compilers;
   }
 
+  reset(manifest = loadManifest()) {
+    this.manifest = manifest;
+    this.compilersPromise = null;
+  }
+
   meta() {
     return compileMemberCatalog(this.manifest);
   }

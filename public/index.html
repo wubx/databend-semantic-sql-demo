@@ -195,6 +195,16 @@
                   </div>
                   <div class="source-actions">
                     <span id="sourceMeta" class="badge subtle">尚未加载</span>
+                    <button id="editSource" class="tiny hidden">编辑</button>
+                    <button id="cancelSourceEdit" class="tiny hidden">
+                      取消
+                    </button>
+                    <button id="validateSource" class="tiny secondary hidden">
+                      校验
+                    </button>
+                    <button id="saveSource" class="tiny primary hidden">
+                      保存并发布
+                    </button>
                     <button id="copySource" class="tiny">复制 YAML</button>
                     <button id="downloadSource" class="tiny primary">
                       下载
@@ -208,6 +218,15 @@
                 <pre id="semanticSource" class="code semantic-source">
 正在加载语义模型文件…</pre
                 >
+                <textarea
+                  id="semanticSourceEditor"
+                  class="semantic-source-editor hidden"
+                  spellcheck="false"
+                ></textarea>
+                <div
+                  id="sourceEditStatus"
+                  class="source-edit-status hidden"
+                ></div>
               </div>
             </div>
           </section>

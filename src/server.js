@@ -37,6 +37,10 @@ const {
   listSemanticSourceFiles,
   readSemanticSourceFile,
 } = require("./semantic-source-files");
+const {
+  saveSemanticSource,
+  validateSemanticSource,
+} = require("./semantic-source-editor");
 
 const app = express();
 const port = Number(process.env.PORT || 4100);
@@ -93,6 +97,30 @@ app.get("/api/semantic-model/source", (req, res) => {
   const source = readSemanticSourceFile(String(req.query.file || "compiled"));
   res.json(source);
 });
+
+app.post(
+  "/api/semantic-model/source/validate",
+  asyncHandler(async (req, res) => {
+    res.json(
+      await validateSemanticSource(String(req.body?.file), req.body?.content),
+    );
+  }),
+);
+
+app.post(
+  "/api/semantic-model/source/save",
+  asyncHandler(async (req, res) => {
+    if (process.env.MODELER_PUBLISH_ENABLED !== "true")
+      return res.status(403).json({ error: "模型发布未启用" });
+    const result = await saveSemanticSource(
+      String(req.body?.file),
+      req.body?.content,
+    );
+    const gateway = getSemanticGateway();
+    if (typeof gateway.reset === "function") gateway.reset(assembleManifest());
+    res.json({ ok: true, ...result, compilerReloaded: true });
+  }),
+);
 
 app.get(
   "/api/modeler/databases",

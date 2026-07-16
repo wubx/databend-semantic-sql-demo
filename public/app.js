@@ -39,6 +39,12 @@ const elements = Object.fromEntries(
     "sourceFileList",
     "sourceFilePath",
     "sourceFileDescription",
+    "semanticSourceEditor",
+    "sourceEditStatus",
+    "editSource",
+    "cancelSourceEdit",
+    "validateSource",
+    "saveSource",
     "copySource",
     "downloadSource",
     "semanticGeneratorView",
@@ -59,6 +65,7 @@ let selectedKind = "all";
 let semanticSourceText = "";
 let semanticSourceFiles = [];
 let selectedSourceFile = "compiled";
+let sourceEditing = false;
 let modelerDatabases = [];
 let generatedDraftState = new Map();
 
@@ -99,6 +106,16 @@ async function boot() {
       ),
     );
   elements.copySource.addEventListener("click", copySemanticSource);
+  elements.editSource.addEventListener("click", () => setSourceEditing(true));
+  elements.cancelSourceEdit.addEventListener("click", () =>
+    setSourceEditing(false),
+  );
+  elements.validateSource.addEventListener("click", () =>
+    submitSemanticSource(false),
+  );
+  elements.saveSource.addEventListener("click", () =>
+    submitSemanticSource(true),
+  );
   elements.downloadSource.addEventListener("click", downloadSemanticSource);
   elements.sourceFileList.addEventListener("click", (event) => {
     const button = event.target.closest("[data-source-file]");
@@ -298,18 +315,77 @@ function renderSemanticSourceFiles() {
 
 async function loadSemanticSource(file = "compiled") {
   selectedSourceFile = file;
+  sourceEditing = false;
   const source = await api(
     `/api/semantic-model/source?file=${encodeURIComponent(file)}`,
   );
   semanticSourceText = source.content;
   elements.semanticSource.innerHTML = highlightYaml(semanticSourceText);
+  elements.semanticSourceEditor.value = semanticSourceText;
   elements.sourceFilePath.textContent = source.path;
   elements.sourceFileDescription.textContent = source.generated
     ? "由模块化语义源实时组装的完整运行时 Manifest · 只读"
-    : "可维护的模块化语义源文件 · 只读";
+    : source.id === "relationships.yaml"
+      ? "实体关系维护源 · 支持编辑、完整 Manifest 校验、Cube 编译和备份发布"
+      : "可维护的模块化语义源文件 · 当前只读";
   const lineCount = semanticSourceText.split("\n").length;
   elements.sourceMeta.textContent = `${lineCount} 行 · ${formatBytes(new Blob([semanticSourceText]).size)}`;
   renderSemanticSourceFiles();
+  setSourceEditing(false);
+}
+
+function setSourceEditing(editing) {
+  const editable = selectedSourceFile === "relationships.yaml";
+  sourceEditing = editable && editing;
+  elements.semanticSource.classList.toggle("hidden", sourceEditing);
+  elements.semanticSourceEditor.classList.toggle("hidden", !sourceEditing);
+  elements.editSource.classList.toggle("hidden", !editable || sourceEditing);
+  elements.cancelSourceEdit.classList.toggle("hidden", !sourceEditing);
+  elements.validateSource.classList.toggle("hidden", !sourceEditing);
+  elements.saveSource.classList.toggle("hidden", !sourceEditing);
+  elements.sourceEditStatus.classList.add("hidden");
+}
+
+async function submitSemanticSource(save) {
+  const endpoint = save
+    ? "/api/semantic-model/source/save"
+    : "/api/semantic-model/source/validate";
+  const buttons = [elements.validateSource, elements.saveSource];
+  buttons.forEach((button) => {
+    button.disabled = true;
+  });
+  elements.sourceEditStatus.className = "source-edit-status pending";
+  elements.sourceEditStatus.textContent = save
+    ? "正在执行完整校验、Cube 编译并保存…"
+    : "正在执行完整 Manifest 校验和 Cube 编译…";
+  try {
+    const result = await api(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        file: selectedSourceFile,
+        content: elements.semanticSourceEditor.value,
+      }),
+    });
+    elements.sourceEditStatus.className = "source-edit-status ok";
+    elements.sourceEditStatus.textContent = save
+      ? `发布成功：${result.path} · 备份 ${result.backupPath} · ${result.relationships} 条关系`
+      : `校验通过：${result.relationships} 条关系 · ${result.cubes.length} 个 Cube 编译成功`;
+    if (save) {
+      await Promise.all([loadSemanticModel(), loadSemanticSourceFiles()]);
+      selectedSourceFile = "relationships.yaml";
+      await loadSemanticSource(selectedSourceFile);
+      elements.sourceEditStatus.className = "source-edit-status ok";
+      elements.sourceEditStatus.textContent = `发布成功并已备份：${result.backupPath}`;
+      elements.sourceEditStatus.classList.remove("hidden");
+    }
+  } catch (error) {
+    elements.sourceEditStatus.className = "source-edit-status bad";
+    elements.sourceEditStatus.textContent = error.message;
+  } finally {
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
+  }
 }
 
 async function copySemanticSource() {
