@@ -63,9 +63,20 @@ reference:
 - [Original placeholder template](./references/snowflake-semantic-view.template.yaml)
 - [TPC-H order analytics example](./references/snowflake-tpch-order-analytics.example.yaml)
 
-These files are documentation, not directly executable Cube models. They are
-used to guide a future portable semantic manifest that can compile into Cube
-models, the LLM member catalog, certified queries, and regression tests.
+These files are documentation, not directly executable Cube models. The first
+portable implementation now lives at
+[`semantic/semantic-manifest.yaml`](./semantic/semantic-manifest.yaml). It is
+the source for generated Cube YAML, the LLM member catalog, and the verified
+semantic-query catalog:
+
+```bash
+npm run build:semantic
+```
+
+Generated artifacts are written to the ignored `generated/` directory. The
+runtime router loads S1/S2/S3 from the manifest rather than duplicating those
+queries in JavaScript. Certified TPC-H SQL templates remain code-backed because
+they require typed parameter validation.
 
 ## Runtime configuration
 

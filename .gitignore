@@ -1,5 +1,6 @@
 node_modules/
 dist/
+generated/
 
 # Local configuration and secrets
 .env
@@ -9,4 +10,5 @@ dist/
 *.key
 
 *.log
+*.pid
 .DS_Store

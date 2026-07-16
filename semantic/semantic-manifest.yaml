@@ -1,0 +1,135 @@
+api_version: semantic.databend.dev/v1alpha1
+kind: SemanticManifest
+
+metadata:
+  name: tpch_order_analytics
+  description: Governed TPC-H order analytics for Cube, Databend, and AI query planning.
+  owner: demo-team
+  tags:
+    domain: sales
+    sensitivity: internal
+
+entities:
+  - name: Orders
+    title: 订单
+    description: TPC-H customer purchase orders.
+    source:
+      schema: tpch_100
+      table: orders
+    keys:
+      primary: orderKey
+
+    dimensions:
+      - name: orderKey
+        title: 订单编号
+        description: Unique identifier of an order.
+        expr: o_orderkey
+        type: number
+        synonyms: [order id, order number, 订单号, 订单编号]
+
+      - name: customerKey
+        title: 客户编号
+        description: Identifier of the customer that placed the order.
+        expr: o_custkey
+        type: number
+        synonyms: [customer id, 客户 ID, 客户编号]
+
+      - name: status
+        title: 订单状态
+        description: F is fulfilled, O is open, and P is pending.
+        expr: o_orderstatus
+        type: string
+        synonyms: [status, order state, 订单状态, 订单阶段]
+        enum: [F, O, P]
+
+      - name: priority
+        title: 订单优先级
+        description: Processing priority assigned to an order.
+        expr: o_orderpriority
+        type: string
+        synonyms: [priority, order priority, 订单优先级]
+
+    time_dimensions:
+      - name: orderDate
+        title: 订单日期
+        description: Date on which the order was placed.
+        expr: o_orderdate
+        type: time
+        synonyms: [order date, order time, 下单日期, 订单时间]
+
+    facts:
+      - name: orderTotal
+        title: 单笔订单金额
+        description: Total price recorded on an individual order.
+        expr: o_totalprice
+        type: decimal
+
+    metrics:
+      - name: count
+        title: 订单数量
+        description: Number of orders.
+        type: count
+        expr: orderKey
+        synonyms: [order count, number of orders, 订单数量, 订单总数]
+
+      - name: totalPrice
+        title: 订单总金额
+        description: Sum of total prices across orders.
+        type: sum
+        expr: orderTotal
+        synonyms: [total order amount, sales amount, GMV, 订单金额, 订单总金额]
+
+    filters:
+      - name: fulfilled
+        title: 已完成订单
+        description: Orders whose TPC-H status is F.
+        expr: "${CUBE}.o_orderstatus = 'F'"
+        synonyms: [completed orders, fulfilled orders, 已完成订单]
+
+verified_queries:
+  - id: S1
+    title: 订单总数
+    question: 订单总数是多少？
+    examples: [订单总数是多少, 一共有多少订单, 统计订单数量]
+    route: semantic
+    cube_query:
+      measures: [Orders.count]
+    verified_by: demo-team
+
+  - id: S2
+    title: 按状态统计订单金额
+    question: 按订单状态统计订单金额。
+    examples: [按订单状态统计订单金额, 各状态订单金额是多少, 订单金额按状态分组]
+    route: semantic
+    cube_query:
+      measures: [Orders.count, Orders.totalPrice]
+      dimensions: [Orders.status]
+      order:
+        Orders.totalPrice: desc
+    verified_by: demo-team
+
+  - id: S3
+    title: 每月订单金额趋势
+    question: 每月订单金额趋势是什么？
+    examples: [每月订单金额趋势, 按月统计订单金额, 订单金额月度变化]
+    route: semantic
+    cube_query:
+      measures: [Orders.totalPrice]
+      timeDimensions:
+        - dimension: Orders.orderDate
+          granularity: month
+      order:
+        Orders.orderDate: asc
+      limit: 120
+    verified_by: demo-team
+
+ai_policy:
+  question_scope: Only answer questions supported by modeled TPC-H concepts or certified SQL templates.
+  prefer_semantic_queries: true
+  allow_free_sql: false
+  reject_write_operations: true
+
+extensions:
+  cube:
+    refresh_key:
+      every: 1 hour

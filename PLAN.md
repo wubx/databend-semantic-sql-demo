@@ -199,14 +199,15 @@ After the initial customer demo is stable:
 Combine Snowflake-inspired AI semantics with Cube's executable semantic layer.
 See [the combined design](./docs/snowflake-vs-cube-combined-semantic-layer.md).
 
-- [ ] Define a minimal versioned portable-manifest schema
-- [ ] Model entities, dimensions, facts, metrics, joins, and cardinality
-- [ ] Add synonyms, verified queries, AI policies, and governance metadata
-- [ ] Compile portable entities and metrics into Cube YAML
-- [ ] Compile synonyms and descriptions into an LLM member catalog
-- [ ] Compile verified queries into the router catalog and regression tests
+- [x] Define a minimal versioned portable-manifest schema
+- [x] Model entities, dimensions, facts, metrics, joins, and cardinality
+- [x] Add synonyms, verified queries, AI policies, and governance metadata
+- [x] Compile portable entities and metrics into Cube YAML
+- [x] Compile synonyms and descriptions into an LLM member catalog
+- [x] Compile verified semantic queries into the router catalog
+- [ ] Compile verified queries into generated regression tests
 - [ ] Validate generated members against Cube `/meta`
-- [ ] Keep Cube and provider-specific features in namespaced extensions
+- [x] Keep Cube and provider-specific features in namespaced extensions
 
 ## Optional Milestone 6 — Controlled Free Text-to-SQL
 
