@@ -205,6 +205,8 @@ See [the combined design](./docs/snowflake-vs-cube-combined-semantic-layer.md).
 - [x] Compile portable entities and metrics into Cube YAML
 - [x] Compile synonyms and descriptions into an LLM member catalog
 - [x] Compile verified semantic queries into the router catalog
+- [x] Validate dynamic Cube Query members, types, operators, enums, granularities, and limits
+- [x] Allow guarded LLM composition of dynamic Cube Query JSON
 - [ ] Compile verified queries into generated regression tests
 - [ ] Validate generated members against Cube `/meta`
 - [x] Keep Cube and provider-specific features in namespaced extensions

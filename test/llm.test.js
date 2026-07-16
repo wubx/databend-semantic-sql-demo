@@ -17,6 +17,25 @@ test('accepts an allowed semantic query from the LLM', () => {
   assert.deepEqual(plan.cubeQuery.dimensions, ['Orders.status']);
 });
 
+test('accepts a dynamic semantic query from the LLM', () => {
+  const plan = validateLlmPlan({
+    supported: true,
+    strategy: 'dynamic',
+    queryId: null,
+    confidence: 0.96,
+    cubeQuery: {
+      measures: ['Orders.totalPrice'],
+      timeDimensions: [{ dimension: 'Orders.orderDate', granularity: 'year' }],
+      order: { 'Orders.orderDate': 'asc' },
+    },
+    reason: 'The user requests yearly sales.',
+  }, '按年统计销售情况', 'auto');
+
+  assert.equal(plan.queryId, 'DYNAMIC');
+  assert.equal(plan.strategy, 'dynamic');
+  assert.equal(plan.cubeQuery.timeDimensions[0].granularity, 'year');
+});
+
 test('validates and normalizes Q6 parameters from the LLM', () => {
   const plan = validateLlmPlan({
     supported: true,

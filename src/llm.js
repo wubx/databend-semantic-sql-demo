@@ -1,5 +1,8 @@
 const { ProxyAgent } = require('undici');
 const { getQuery, listQueries } = require('./catalog');
+const { compileMemberCatalog } = require('./compiler');
+const { loadManifest } = require('./manifest');
+const { validateSemanticQuery } = require('./semantic-query');
 
 const VALID_MODES = new Set(['auto', 'semantic', 'tpch']);
 
@@ -20,18 +23,27 @@ async function planWithLlm(question, mode = 'auto') {
     {
       role: 'system',
       content: [
-        'You are a strict query router for a Cube and Databend demo.',
-        'Select exactly one certified query from the supplied catalog, or reject the request.',
-        'Never generate SQL and never invent a query ID.',
-        'For Q6, extract only startDate, endDate, discountMin, discountMax, and quantity.',
-        'Percentages must be decimal numbers: 5% becomes 0.05.',
+        'You are a strict semantic query planner for Cube and Databend.',
+        'Use this priority: (1) select an exact certified query, (2) build a dynamic Cube Query from public semantic members, (3) reject.',
+        'For TPC-H routes, only select a certified query ID. Never generate SQL.',
+        'For dynamic semantic routes, queryId must be null and cubeQuery may contain only measures, dimensions, timeDimensions, filters, order, and limit.',
+        'Use exact member identifiers from the supplied semanticMemberCatalog.',
+        'Allowed granularities: year, quarter, month, week, day.',
+        'Allowed filter operators: equals, notEquals, contains, startsWith, gt, gte, lt, lte, inDateRange, notInDateRange, set, notSet.',
+        'Never invent a metric. Interpret generic sales/销售情况/销售额 as Orders.totalPrice only when that modeled metric fits the question.',
+        'For certified Q6, extract only startDate, endDate, discountMin, discountMax, and quantity. Percentages must be decimals.',
         'Return JSON only with this shape:',
-        '{"supported":boolean,"queryId":string|null,"confidence":number,"parameters":object,"reason":string}',
+        '{"supported":boolean,"strategy":"certified|dynamic|reject","queryId":string|null,"confidence":number,"parameters":object,"cubeQuery":object|null,"reason":string}',
       ].join('\n'),
     },
     {
       role: 'user',
-      content: JSON.stringify({ mode, question, certifiedQueryCatalog: catalog }),
+      content: JSON.stringify({
+        mode,
+        question,
+        certifiedQueryCatalog: catalog,
+        semanticMemberCatalog: compileMemberCatalog(loadManifest()),
+      }),
     },
   ]);
   return validateLlmPlan(response, question, mode);
@@ -96,7 +108,7 @@ function proxyDispatcher(endpoint) {
 }
 
 function validateLlmPlan(result, question, mode) {
-  if (result.supported === false) {
+  if (result.supported === false || result.strategy === 'reject') {
     return {
       supported: false,
       question,
@@ -105,6 +117,25 @@ function validateLlmPlan(result, question, mode) {
       message: result.reason || 'AI planner could not map this request to a certified query.',
     };
   }
+  if (result.strategy === 'dynamic' || (!result.queryId && result.cubeQuery)) {
+    if (mode === 'tpch') throw new Error('AI planner selected a semantic query outside the requested mode');
+    const cubeQuery = validateSemanticQuery(result.cubeQuery, compileMemberCatalog(loadManifest()));
+    return {
+      supported: true,
+      question,
+      route: 'semantic',
+      queryId: 'DYNAMIC',
+      title: '动态语义查询',
+      description: '基于 Portable Semantic Manifest 受控生成的 Cube Query。',
+      confidence: clamp(Number(result.confidence) || 0.8, 0, 1),
+      planner: 'llm',
+      strategy: 'dynamic',
+      reason: result.reason,
+      parameters: {},
+      cubeQuery,
+    };
+  }
+
   const definition = getQuery(String(result.queryId || '').toUpperCase());
   if (!definition) throw new Error('AI planner selected an unknown certified query');
   if (mode !== 'auto' && definition.route !== mode) throw new Error('AI planner selected a query outside the requested mode');
@@ -121,6 +152,7 @@ function validateLlmPlan(result, question, mode) {
     description: definition.description,
     confidence: clamp(Number(result.confidence) || 0.8, 0, 1),
     planner: 'llm',
+    strategy: 'certified',
     reason: result.reason,
     parameters,
     cubeQuery: definition.cubeQuery,

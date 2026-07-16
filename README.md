@@ -20,11 +20,13 @@ Natural language
 - `Q6` — Parameterized forecasting revenue SQL
 - `Q21` — Supplier waiting SQL with `EXISTS` and `NOT EXISTS`
 
-The demo includes an optional OpenAI-compatible planner. The model can only
-select one of the six certified queries and extract an allowlisted parameter
-set; it cannot generate or execute SQL. Provider failure automatically falls
-back to the deterministic router. Result summaries receive only the natural
-language question, certified query ID, and real result rows.
+The demo includes an optional OpenAI-compatible planner. It first prefers an
+exact certified query, then may compose a dynamic Cube Query from public
+manifest members. Every dynamic query is validated locally against member kind,
+filter operator, enum value, time granularity, and size limits. The model cannot
+generate or execute SQL. Provider failure automatically falls back to the
+deterministic certified-query router. Result summaries receive only the natural
+language question, query plan, and real result rows.
 
 ## Run locally
 
