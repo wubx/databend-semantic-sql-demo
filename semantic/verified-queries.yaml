@@ -114,33 +114,6 @@ verified_queries:
         LineItem.delayedCount: desc
       limit: 100
     verified_by: demo-team
-  - id: S8
-    title: 使用最多的运输方式及平均时长
-    question: 使用最多的运输方式是什么？以及该方式的平均时长。
-    examples:
-      - 帮分析一下使用最多的运输方式是什么以及该方式的平均时长
-      - 哪种运输方式使用最多以及平均运输时长
-      - 使用次数最多的运输方式和平均运输天数
-    route: semantic
-    cube_query:
-      measures:
-        - LineItem.count
-        - LineItem.averageTransitDays
-      dimensions:
-        - LineItem.shipMode
-      order:
-        LineItem.count: desc
-      limit: 1
-    verified_by: demo-team
-    expected_result:
-      columns:
-        - LineItem.shipMode
-        - LineItem.count
-        - LineItem.averageTransitDays
-      min_rows: 1
-      max_rows: 1
-    result:
-      summary_template: 按订单明细使用次数统计，{LineItem.shipMode} 使用最多，共 {LineItem.count} 条明细，平均运输时长为 {LineItem.averageTransitDays} 天。
   - id: S7
     title: 按区域统计订单金额
     question: 按区域统计订单金额。

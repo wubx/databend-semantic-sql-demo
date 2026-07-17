@@ -12,16 +12,6 @@ test("routes semantic questions deterministically", () => {
   assert.equal(deterministicPlan("订单总数是多少？").queryId, "S1");
   assert.equal(deterministicPlan("按订单状态统计订单金额。").queryId, "S2");
   assert.equal(deterministicPlan("每月订单金额趋势是什么？").queryId, "S3");
-  const shipping = deterministicPlan(
-    "帮分析一下使用最多的运输方式是什么？以及该方式的平均时长",
-  );
-  assert.equal(shipping.queryId, "S8");
-  assert.deepEqual(shipping.cubeQuery, {
-    measures: ["LineItem.count", "LineItem.averageTransitDays"],
-    dimensions: ["LineItem.shipMode"],
-    order: { "LineItem.count": "desc" },
-    limit: 1,
-  });
 });
 
 test("finds an exact certified query without fuzzy routing", () => {

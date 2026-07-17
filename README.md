@@ -118,7 +118,6 @@ semantic/policy.yaml                # AI 与查询治理声明
 - `S4`：按年统计发货商品数量
 - `S5`：延迟收货明细数量
 - `S6`：运输方式与效率分析
-- `S8`：使用最多的运输方式及平均时长
 - `S7`：按区域统计订单金额
 - `Q1`：TPC-H Pricing Summary Report
 - `Q6`：TPC-H Forecasting Revenue Change

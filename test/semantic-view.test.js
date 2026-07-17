@@ -6,7 +6,7 @@ const { buildSemanticView } = require("../src/semantic-view");
 test("builds a user-facing semantic model view", () => {
   const view = buildSemanticView();
   assert.equal(view.stats.entities, 10);
-  assert.equal(view.stats.verifiedQueries, 8);
+  assert.equal(view.stats.verifiedQueries, 7);
   assert.ok(view.stats.members >= view.stats.publicMembers);
   assert.ok(view.stats.measures > 0);
   assert.ok(view.relationships.length > 0);
