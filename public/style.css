@@ -178,7 +178,8 @@ h2 {
   font-size: 9px;
 }
 .log-origin,
-.log-policy {
+.log-policy,
+.log-fallback {
   padding: 4px 7px;
   border: 1px solid #345269;
   border-radius: 999px;
@@ -193,6 +194,15 @@ h2 {
 .log-policy.denied {
   color: #ff8da3;
   border-color: #794050;
+}
+.log-fallback {
+  color: #ffc878;
+  border-color: #826033;
+}
+.log-fallback.timeout {
+  color: #ff9cae;
+  border-color: #91465a;
+  background: rgba(126, 38, 59, 0.18);
 }
 .log-record time {
   color: #607e96;
@@ -230,6 +240,26 @@ h2 {
 }
 .log-detail section {
   margin-top: 12px;
+}
+.fallback-message {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  color: #c9d9e8;
+  background: rgba(104, 35, 52, 0.18);
+  border: 1px solid #71384a;
+  border-radius: 9px;
+}
+.fallback-message b {
+  color: #ff9cae;
+}
+.fallback-message span {
+  color: #88a2b9;
+  font-size: 10px;
+}
+.fallback-message code {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .log-detail section > strong {
   display: block;
@@ -1342,6 +1372,7 @@ td {
   }
   .log-origin,
   .log-policy,
+  .log-fallback,
   .log-record time {
     display: none;
   }

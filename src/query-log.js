@@ -84,7 +84,14 @@ async function listQueryObservations({
     .filter(
       (item) =>
         !normalizedSearch ||
-        [item.question, item.queryId, item.sql, item.error]
+        [
+          item.question,
+          item.queryId,
+          item.sql,
+          item.error,
+          item.fallback?.from,
+          item.fallback?.reason,
+        ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -135,8 +142,13 @@ function summarizeObservations(records) {
   const freeSql = records.filter(
     (item) => item.policy?.usedAllowFreeSql === true,
   );
+  const fallback = records.filter((item) => item.fallback?.reason);
   return {
     total: records.length,
+    fallbacks: fallback.length,
+    llmTimeouts: fallback.filter((item) =>
+      isTimeoutReason(item.fallback.reason),
+    ).length,
     executed: executed.length,
     success: records.filter((item) => item.status === "success").length,
     errors: records.filter((item) => item.status === "error").length,
@@ -148,6 +160,10 @@ function summarizeObservations(records) {
     freeSqlDenied: freeSql.filter((item) => item.policy?.decision === "denied")
       .length,
   };
+}
+
+function isTimeoutReason(reason) {
+  return /timeout|timed out|aborted due to timeout/i.test(String(reason || ""));
 }
 
 async function writeQueryObservation(observation) {

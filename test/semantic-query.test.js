@@ -60,6 +60,28 @@ test("accepts a governed semantic segment", () => {
   assert.deepEqual(query.segments, ["LineItem.delayedReceipt"]);
 });
 
+test("accepts up to eight dimensions for richer dynamic queries", () => {
+  const query = validateSemanticQuery(
+    {
+      measures: ["LineItem.count"],
+      dimensions: [
+        "LineItem.orderKey",
+        "LineItem.partKey",
+        "LineItem.supplierKey",
+        "LineItem.lineNumber",
+        "LineItem.lineStatus",
+        "LineItem.returnFlag",
+        "LineItem.shipMode",
+        "LineItem.shipInstruction",
+      ],
+      limit: 10,
+    },
+    catalog,
+  );
+  assert.equal(query.dimensions.length, 8);
+  assert.equal(query.limit, 10);
+});
+
 test("rejects unknown metrics and invalid time dimensions", () => {
   assert.throws(
     () => validateSemanticQuery({ measures: ["Orders.profit"] }, catalog),

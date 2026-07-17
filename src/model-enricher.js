@@ -25,6 +25,7 @@ async function enrichDraftWithLlm(draft, context = {}, options = {}) {
     {
       maxTokens: Number(process.env.MODELER_AI_MAX_TOKENS || 1800),
       timeoutMs: Number(process.env.MODELER_AI_TIMEOUT_MS || 90000),
+      operation: "model-enrichment",
       ...options,
     },
   );

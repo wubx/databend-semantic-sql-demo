@@ -20,7 +20,7 @@ const ALLOWED_OPERATORS = new Set([
   "notSet",
 ]);
 const MAX_MEASURES = 3;
-const MAX_DIMENSIONS = 3;
+const MAX_DIMENSIONS = 8;
 const MAX_FILTERS = 5;
 const MAX_LIMIT = 500;
 

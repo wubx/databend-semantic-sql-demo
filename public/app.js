@@ -796,6 +796,7 @@ async function loadQueryLogs() {
       [stats.total, "日志"],
       [stats.executed, "执行"],
       [stats.errors + stats.rejected, "异常/拒绝"],
+      [stats.llmTimeouts, "LLM 超时"],
       [stats.freeSqlAllowed, "自由 SQL"],
       [stats.freeSqlDenied, "策略拒绝"],
     ]
@@ -824,6 +825,9 @@ function renderLogRecord(item) {
   const policy = item.policy?.usedAllowFreeSql
     ? `<span class="log-policy ${item.policy.decision}">allow_free_sql · ${escapeHtml(item.policy.decision)}</span>`
     : "";
+  const fallback = item.fallback?.reason
+    ? `<span class="log-fallback ${isTimeoutFallback(item.fallback.reason) ? "timeout" : ""}">${escapeHtml(fallbackLabel(item.fallback.reason))}</span>`
+    : "";
   const details = [
     item.operation,
     item.queryId,
@@ -835,7 +839,22 @@ function renderLogRecord(item) {
         ? `${item.timings.totalMs} ms`
         : null,
   ].filter(Boolean);
-  return `<details class="log-record ${escapeHtml(item.status)}"><summary><span class="log-status-dot"></span><div class="log-question"><strong>${escapeHtml(item.question || "无自然语言问题")}</strong><small>${escapeHtml(details.join(" · "))}</small></div><span class="log-origin">${escapeHtml(originLabels[item.sqlOrigin] || item.route || "未分类")}</span>${policy}<time>${escapeHtml(formatLogTime(item.timestamp))}</time></summary><div class="log-detail"><div class="log-detail-grid"><div><span>Request ID</span><code>${escapeHtml(item.requestId)}</code></div><div><span>查询理解</span><code>${escapeHtml(item.queryUnderstanding?.method || item.strategy || "-")}</code></div><div><span>状态</span><code>${escapeHtml(item.status)}</code></div><div><span>SQL 来源</span><code>${escapeHtml(item.sqlOrigin || "-")}</code></div></div>${item.cubeQuery ? `<section><strong>Cube Query</strong><pre class="code">${escapeHtml(JSON.stringify(item.cubeQuery, null, 2))}</pre></section>` : ""}${item.sql ? `<section><strong>SQL</strong><pre class="code">${escapeHtml(item.sql)}</pre></section>` : ""}${item.error ? `<p class="error">${escapeHtml(item.error)}</p>` : ""}${item.question ? `<button class="tiny" data-reuse-question="${escapeHtml(item.question)}">再次提问</button>` : ""}</div></details>`;
+  return `<details class="log-record ${escapeHtml(item.status)}"><summary><span class="log-status-dot"></span><div class="log-question"><strong>${escapeHtml(item.question || "无自然语言问题")}</strong><small>${escapeHtml(details.join(" · "))}</small></div><span class="log-origin">${escapeHtml(originLabels[item.sqlOrigin] || item.route || "未分类")}</span>${fallback}${policy}<time>${escapeHtml(formatLogTime(item.timestamp))}</time></summary><div class="log-detail"><div class="log-detail-grid"><div><span>Request ID</span><code>${escapeHtml(item.requestId)}</code></div><div><span>查询理解</span><code>${escapeHtml(item.queryUnderstanding?.method || item.strategy || "-")}</code></div><div><span>状态</span><code>${escapeHtml(item.status)}</code></div><div><span>SQL 来源</span><code>${escapeHtml(item.sqlOrigin || "-")}</code></div></div>${item.fallback?.reason ? `<section class="fallback-detail"><strong>降级原因</strong><div class="fallback-message"><b>${escapeHtml(fallbackLabel(item.fallback.reason))}</b><span>来源：${escapeHtml(item.fallback.from || "未知")}</span><code>${escapeHtml(item.fallback.reason)}</code></div></section>` : ""}${item.cubeQuery ? `<section><strong>Cube Query</strong><pre class="code">${escapeHtml(JSON.stringify(item.cubeQuery, null, 2))}</pre></section>` : ""}${item.sql ? `<section><strong>SQL</strong><pre class="code">${escapeHtml(item.sql)}</pre></section>` : ""}${item.error ? `<p class="error">${escapeHtml(item.error)}</p>` : ""}${item.question ? `<button class="tiny" data-reuse-question="${escapeHtml(item.question)}">再次提问</button>` : ""}</div></details>`;
+}
+
+function isTimeoutFallback(reason) {
+  return /timeout|timed out|aborted due to timeout/i.test(String(reason || ""));
+}
+
+function fallbackLabel(reason) {
+  const message = String(reason || "");
+  if (isTimeoutFallback(message)) return "LLM 调用超时";
+  if (/valid json|json/i.test(message)) return "LLM 返回格式无效";
+  if (/fetch failed|network|connect|socket/i.test(message))
+    return "LLM 网络连接失败";
+  if (/unknown.*member|unknown member/i.test(message))
+    return "LLM 返回未知语义成员";
+  return "LLM 规划失败并已降级";
 }
 
 function formatLogTime(value) {

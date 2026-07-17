@@ -1,8 +1,10 @@
+const { randomUUID } = require("node:crypto");
 const { ProxyAgent } = require("undici");
 const { getQuery, listQueries } = require("./catalog");
 const { compileMemberCatalog } = require("./compiler");
 const { loadManifest } = require("./manifest");
 const { validateSemanticQuery } = require("./semantic-query");
+const { observeLlm } = require("./llm-log");
 
 const VALID_MODES = new Set(["auto", "semantic", "tpch"]);
 
@@ -24,56 +26,62 @@ async function planWithLlm(question, mode = "auto") {
       examples,
       defaultParameters: parameters,
     }));
-  const response = await requestCompletion([
-    {
-      role: "system",
-      content: [
-        "You are a strict semantic query planner for Cube and Databend.",
-        "Use this priority: (1) select an exact certified query, (2) build a dynamic Cube Query from public semantic members, (3) reject.",
-        "For TPC-H routes, only select a certified query ID. Never generate SQL.",
-        "For dynamic semantic routes, queryId must be null and cubeQuery may contain only measures, dimensions, timeDimensions, filters, segments, order, and limit.",
-        "Efficiency/效率 questions may use governed efficiency members such as delayedCount, averageTransitDays, and averageDelayDays; never calculate unmodeled ratios.",
-        "Use segments for semantic members whose kind is filter; for example LineItem.delayedReceipt must appear in segments, not filters.",
-        "Use exact member identifiers from the supplied semanticMemberCatalog.",
-        "Allowed granularities: year, quarter, month, week, day.",
-        "Allowed filter operators: equals, notEquals, contains, startsWith, gt, gte, lt, lte, inDateRange, notInDateRange, set, notSet.",
-        "Never invent a metric. Interpret generic sales/销售情况/销售额 as Orders.totalPrice only when that modeled metric fits the question.",
-        "For certified Q6, extract only startDate, endDate, discountMin, discountMax, and quantity. Percentages must be decimals.",
-        "Return JSON only with this shape:",
-        '{"supported":boolean,"strategy":"certified|dynamic|reject","queryId":string|null,"confidence":number,"parameters":object,"cubeQuery":object|null,"reason":string}',
-      ].join("\n"),
-    },
-    {
-      role: "user",
-      content: JSON.stringify({
-        mode,
-        question,
-        certifiedQueryCatalog: catalog,
-        semanticMemberCatalog: compileMemberCatalog(loadManifest()),
-      }),
-    },
-  ]);
+  const response = await requestCompletion(
+    [
+      {
+        role: "system",
+        content: [
+          "You are a strict semantic query planner for Cube and Databend.",
+          "Use this priority: (1) select an exact certified query, (2) build a dynamic Cube Query from public semantic members, (3) reject.",
+          "For TPC-H routes, only select a certified query ID. Never generate SQL.",
+          "For dynamic semantic routes, queryId must be null and cubeQuery may contain only measures, dimensions, timeDimensions, filters, segments, order, and limit.",
+          "Efficiency/效率 questions may use governed efficiency members such as delayedCount, averageTransitDays, and averageDelayDays; never calculate unmodeled ratios.",
+          "Use segments for semantic members whose kind is filter; for example LineItem.delayedReceipt must appear in segments, not filters.",
+          "Use exact member identifiers from the supplied semanticMemberCatalog.",
+          "Allowed granularities: year, quarter, month, week, day.",
+          "Allowed filter operators: equals, notEquals, contains, startsWith, gt, gte, lt, lte, inDateRange, notInDateRange, set, notSet.",
+          "Never invent a metric. Interpret generic sales/销售情况/销售额 as Orders.totalPrice only when that modeled metric fits the question.",
+          "For certified Q6, extract only startDate, endDate, discountMin, discountMax, and quantity. Percentages must be decimals.",
+          "Return JSON only with this shape:",
+          '{"supported":boolean,"strategy":"certified|dynamic|reject","queryId":string|null,"confidence":number,"parameters":object,"cubeQuery":object|null,"reason":string}',
+        ].join("\n"),
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          mode,
+          question,
+          certifiedQueryCatalog: catalog,
+          semanticMemberCatalog: compileMemberCatalog(loadManifest()),
+        }),
+      },
+    ],
+    { operation: "query-planning" },
+  );
   return validateLlmPlan(response, question, mode);
 }
 
 async function summarizeWithLlm({ question, plan, data }) {
   if (!isEnabled() || !Array.isArray(data) || !data.length) return null;
   const limitedData = data.slice(0, 20);
-  const response = await requestCompletion([
-    {
-      role: "system",
-      content:
-        '用简洁中文总结真实查询结果。只能使用提供的数据，不得推测或编造。返回 JSON：{"summary":"..."}。',
-    },
-    {
-      role: "user",
-      content: JSON.stringify({
-        question,
-        queryId: plan.queryId,
-        data: limitedData,
-      }),
-    },
-  ]);
+  const response = await requestCompletion(
+    [
+      {
+        role: "system",
+        content:
+          '用简洁中文总结真实查询结果。只能使用提供的数据，不得推测或编造。返回 JSON：{"summary":"..."}。',
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          question,
+          queryId: plan.queryId,
+          data: limitedData,
+        }),
+      },
+    ],
+    { operation: "result-summary" },
+  );
   return typeof response.summary === "string" ? response.summary : null;
 }
 
@@ -87,35 +95,104 @@ async function requestCompletion(messages, options = {}) {
   const timeout = Number(
     options.timeoutMs || process.env.AI_REQUEST_TIMEOUT_MS || 30000,
   );
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.AI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: process.env.AI_MODEL || "gpt-4.1-mini",
-      messages,
-      temperature: 0,
-      max_tokens: options.maxTokens || 500,
-      response_format: { type: "json_object" },
-    }),
-    dispatcher: proxyDispatcher(endpoint),
-    signal: AbortSignal.timeout(timeout),
-  });
-  const body = await response.json();
-  if (!response.ok || body.error) {
-    throw new Error(
-      body.error?.message || `AI provider returned HTTP ${response.status}`,
-    );
-  }
-  const content = body.choices?.[0]?.message?.content;
-  if (!content) throw new Error("AI provider returned an empty response");
+  const model = process.env.AI_MODEL || "gpt-4.1-mini";
+  const llmRequestId = randomUUID();
+  const request = {
+    model,
+    messages,
+    temperature: 0,
+    max_tokens: options.maxTokens || 500,
+    response_format: { type: "json_object" },
+  };
+  const startedAt = performance.now();
+  let response;
+  let body;
   try {
-    return JSON.parse(content);
-  } catch {
-    throw new Error("AI provider did not return valid JSON");
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.AI_API_KEY}`,
+        "Content-Type": "application/json",
+        "X-Client-Request-Id": llmRequestId,
+      },
+      body: JSON.stringify(request),
+      dispatcher: proxyDispatcher(endpoint),
+      signal: AbortSignal.timeout(timeout),
+    });
+    body = await response.json();
+    if (!response.ok || body.error) {
+      throw new Error(
+        body.error?.message || `AI provider returned HTTP ${response.status}`,
+      );
+    }
+    const content = body.choices?.[0]?.message?.content;
+    if (!content) throw new Error("AI provider returned an empty response");
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error("AI provider did not return valid JSON");
+    }
+    await observeLlm({
+      llmRequestId,
+      operation: options.operation,
+      provider: new URL(endpoint).hostname,
+      endpoint: redactEndpoint(endpoint),
+      model,
+      timeoutMs: timeout,
+      durationMs: elapsed(startedAt),
+      request,
+      response: {
+        providerRequestId: response.headers.get("x-request-id") || body.id,
+        id: body.id,
+        model: body.model,
+        created: body.created,
+        usage: body.usage,
+        finishReason: body.choices?.[0]?.finish_reason,
+        message: body.choices?.[0]?.message,
+        parsed,
+      },
+      http: { status: response.status, ok: response.ok },
+    });
+    return parsed;
+  } catch (error) {
+    await observeLlm({
+      llmRequestId,
+      operation: options.operation,
+      provider: new URL(endpoint).hostname,
+      endpoint: redactEndpoint(endpoint),
+      model,
+      timeoutMs: timeout,
+      durationMs: elapsed(startedAt),
+      request,
+      response: body
+        ? {
+            providerRequestId: response?.headers.get("x-request-id") || body.id,
+            id: body.id,
+            model: body.model,
+            usage: body.usage,
+            error: body.error,
+            choices: body.choices,
+          }
+        : undefined,
+      http: response ? { status: response.status, ok: response.ok } : undefined,
+      error,
+    });
+    throw error;
   }
+}
+
+function redactEndpoint(endpoint) {
+  const url = new URL(endpoint);
+  url.username = "";
+  url.password = "";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+function elapsed(startedAt) {
+  return Math.round((performance.now() - startedAt) * 10) / 10;
 }
 
 function proxyDispatcher(endpoint) {
