@@ -160,6 +160,77 @@ test("core demo rich ten-row detail request remains a single ungrouped query", a
   assert.equal(validateSql(compiled.sql).valid, true);
 });
 
+test("core demo multi-table detail query follows governed joins and nation roles", async () => {
+  const plan = validateLlmPlan(
+    {
+      supported: true,
+      strategy: "dynamic",
+      queryId: null,
+      confidence: 0.99,
+      cubeQuery: {
+        measures: [],
+        dimensions: [
+          "LineItem.orderKey",
+          "LineItem.lineNumber",
+          "Orders.orderTotal",
+          "Customer.name",
+          "CustomerNation.name",
+          "Part.name",
+          "Part.brand",
+          "Supplier.name",
+          "SupplierNation.name",
+          "LineItem.quantity",
+          "LineItem.extendedPrice",
+        ],
+        order: {
+          "LineItem.orderKey": "asc",
+          "LineItem.lineNumber": "asc",
+        },
+        limit: 10,
+        ungrouped: true,
+      },
+      reason: "在订单明细粒度关联订单、客户、商品、供应商及两个角色化国家。",
+    },
+    "查看前10条订单明细，同时显示订单金额、商品名称、商品品牌、供应商名称、客户所属国家和供应商所属国家。",
+    "auto",
+  );
+  assert.equal(plan.strategy, "dynamic");
+  assert.equal(plan.cubeQuery.ungrouped, true);
+  assert.equal(plan.cubeQuery.limit, 10);
+  assert.deepEqual(plan.cubeQuery.measures, []);
+  assert.ok(plan.cubeQuery.dimensions.includes("CustomerNation.name"));
+  assert.ok(plan.cubeQuery.dimensions.includes("SupplierNation.name"));
+
+  const compiled = await gateway.compile(plan.cubeQuery);
+  for (const table of [
+    "tpch_100.lineitem",
+    "tpch_100.orders",
+    "tpch_100.customer",
+    "tpch_100.nation",
+    "tpch_100.part",
+    "tpch_100.supplier",
+  ]) {
+    assert.match(compiled.sql, new RegExp(table.replace(".", "\\.")));
+  }
+  assert.match(compiled.sql, /"line_item"\.l_orderkey = "orders"\.o_orderkey/);
+  assert.match(compiled.sql, /"orders"\.o_custkey = "customer"\.c_custkey/);
+  assert.match(
+    compiled.sql,
+    /"customer"\.c_nationkey = "customer_nation"\.n_nationkey/,
+  );
+  assert.match(compiled.sql, /"line_item"\.l_partkey = "part"\.p_partkey/);
+  assert.match(compiled.sql, /"line_item"\.l_suppkey = "supplier"\.s_suppkey/);
+  assert.match(
+    compiled.sql,
+    /"supplier"\.s_nationkey = "supplier_nation"\.n_nationkey/,
+  );
+  assert.match(compiled.sql, /"customer_nation"\.n_name/);
+  assert.match(compiled.sql, /"supplier_nation"\.n_name/);
+  assert.match(compiled.sql, /ORDER BY\s+1\s+ASC,\s+2\s+ASC/);
+  assert.match(compiled.sql, /LIMIT 10$/);
+  assert.equal(validateSql(compiled.sql).valid, true);
+});
+
 test("core demo dynamic Top N preserves an explicit requested limit", () => {
   const plan = validateLlmPlan(
     {
