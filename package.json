@@ -17,7 +17,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "databend-driver": "0.25.4",
+    "databend-driver": "0.34.2",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "sqlstring": "^2.3.3",

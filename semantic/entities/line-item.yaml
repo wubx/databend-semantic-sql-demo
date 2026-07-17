@@ -197,6 +197,26 @@ entity:
         - charged amount
         - revenue with tax
         - 含税收入
+    - name: averageQuantity
+      title: 平均数量
+      description: Average quantity across order line items.
+      type: avg
+      expr: quantity
+      synonyms:
+        - average quantity
+        - avg quantity
+        - 平均数量
+        - 平均商品数量
+    - name: averageExtendedPrice
+      title: 平均扩展价格
+      description: Average extended price before discount and tax across order line items.
+      type: avg
+      expr: extendedPrice
+      synonyms:
+        - average extended price
+        - avg extended price
+        - 平均扩展价格
+        - 平均价格
     - name: averageDiscount
       title: 平均折扣率
       description: Average discount rate across line items.
