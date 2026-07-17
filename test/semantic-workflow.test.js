@@ -76,6 +76,13 @@ test("rejects unsafe workflow structure and mismatched exports", () => {
     /exactly 2 stages/,
   );
 
+  const missingOrder = workflow();
+  delete missingOrder.stages[0].query.order;
+  assert.throws(
+    () => validateSemanticWorkflow(missingOrder),
+    /requires an explicit order/,
+  );
+
   const wrongExport = workflow();
   wrongExport.stages[0].exportMember = "Orders.customerKey";
   assert.throws(

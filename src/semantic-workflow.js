@@ -43,6 +43,14 @@ function validateParentStage(input, catalog) {
   });
   if (!query.ungrouped)
     throw new Error("Semantic workflow parent stage must be ungrouped");
+  if (!query.order || !Object.keys(query.order).length)
+    throw new Error(
+      "Semantic workflow parent stage requires an explicit order",
+    );
+  for (const member of Object.keys(query.order)) {
+    if (!query.dimensions?.includes(member))
+      throw new Error("Parent order members must be selected as dimensions");
+  }
   if (query.limit > MAX_EXPORTED_KEYS)
     throw new Error(
       `Parent stage can export at most ${MAX_EXPORTED_KEYS} keys`,

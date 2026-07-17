@@ -67,7 +67,10 @@ async function planWithLlm(question, mode = "auto") {
         }),
       },
     ],
-    { operation: "query-planning" },
+    {
+      operation: "query-planning",
+      timeoutMs: Number(process.env.AI_PLANNING_TIMEOUT_MS || 60000),
+    },
   );
   return validateLlmPlan(response, question, mode);
 }

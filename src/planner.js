@@ -86,10 +86,6 @@ async function compileWorkflowPlan(plan) {
   const gateway = getSemanticGateway();
   const stages = [];
   for (const stage of plan.workflow.stages) {
-    if (stage.role === "detail") {
-      stages.push({ ...stage, sql: null, sqlValues: [], validation: null });
-      continue;
-    }
     const generated = await gateway.compile(stage.query);
     stages.push({
       ...stage,
@@ -97,12 +93,18 @@ async function compileWorkflowPlan(plan) {
       sqlValues: generated.values,
       validation: validateSql(generated.sql),
       semanticGateway: generated.gateway,
+      template: stage.role === "detail",
     });
   }
   plan.workflow.stages = stages;
   plan.sqlOrigin = "cube-workflow";
   plan.semanticGateway = stages[0].semanticGateway;
-  plan.validation = stages[0].validation;
+  plan.validation = {
+    valid: stages.every((stage) => stage.validation.valid),
+    errors: stages.flatMap((stage) =>
+      stage.validation.errors.map((error) => `${stage.id}: ${error}`),
+    ),
+  };
 }
 
 async function compileBoundWorkflowDetail(plan, parentData) {
@@ -118,6 +120,7 @@ async function compileBoundWorkflowDetail(plan, parentData) {
       sqlValues: generated.values,
       validation: validateSql(generated.sql),
       semanticGateway: generated.gateway,
+      template: false,
     },
   };
 }

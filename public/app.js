@@ -1475,7 +1475,7 @@ function formatWorkflowSql(workflow) {
   return (workflow?.stages || [])
     .map(
       (stage, index) =>
-        `-- Stage ${index + 1}: ${stage.id} (${stage.role})\n${stage.sql || "-- 执行 Stage 1 后注入 Keys，再生成该阶段 SQL"}`,
+        `-- Stage ${index + 1}: ${stage.id} (${stage.role})${stage.template ? " · SQL 模板，执行时注入 Stage 1 Keys" : ""}\n${stage.sql || "-- 尚未生成"}`,
     )
     .join("\n\n────────────────────────────────────────\n\n");
 }
