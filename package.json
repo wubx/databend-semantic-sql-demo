@@ -1,8 +1,8 @@
 {
-  "name": "databend-semantic-sql-demo",
+  "name": "databend-semantic-query-lab",
   "version": "0.1.0",
   "private": true,
-  "description": "Natural-language semantic SQL demo for Cube and Databend",
+  "description": "AI-powered, governed, and observable semantic query lab for Databend",
   "type": "commonjs",
   "scripts": {
     "build:semantic": "node src/build-manifest.js",

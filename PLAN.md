@@ -1,4 +1,4 @@
-# Databend Semantic SQL Demo Plan
+# Databend Semantic Query Lab Plan
 
 ## Goal
 
@@ -59,7 +59,7 @@ Cube runtime caching, pre-aggregations, or access policies are required.
 ## Repository Boundaries
 
 - `wubx/cube`, branch `feat/databend-driver`: Databend Driver only
-- `wubx/databend-semantic-sql-demo`: models, TPC-H knowledge, API, web UI,
+- `wubx/databend-semantic-query-lab`: models, TPC-H knowledge, API, web UI,
   evaluation, and deployment scripts
 
 The demo may initially depend on the unpublished driver branch. It should move

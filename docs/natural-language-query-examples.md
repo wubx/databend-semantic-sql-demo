@@ -1,6 +1,6 @@
 # 自然语言查询验证手册
 
-本文提供一组可以直接粘贴到 **Semantic SQL Copilot** 的测试问题，用于分别验证：
+本文提供一组可以直接粘贴到 **Databend Semantic Query Lab** 的测试问题，用于分别验证：
 
 1. 内置认证查询（Certified Query）；
 2. 确定性本地路由；

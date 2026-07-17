@@ -1,8 +1,39 @@
-# Databend Semantic SQL Demo
+# Databend Semantic Query Lab
 
-一个基于 **Cube Semantic Layer + Databend + 可选 LLM** 的语义查询与语义模型管理 Demo。
+一个面向 **Databend** 的 AI 驱动、可治理、可观测语义查询实验平台。语义 Query 到 Databend SQL 的编译使用 Cube Open Source Compiler；自然语言规划、认证资产、治理、安全和可观测由本项目实现。
 
 它将业务问题转换为受治理的 Cube Query 或认证 TPC-H SQL，在执行前完成成员、参数和 SQL 安全校验，然后查询 Databend 并展示真实结果。同时提供可视化语义层、模块化 YAML 维护以及从 Databend 表生成模型草稿的能力。
+
+## 平台结构
+
+```text
+用户 / BI / AI Agent
+         │
+         ▼
+Databend Semantic Query Lab
+         │
+ ┌───────┼────────┐
+ │       │        │
+Certified Dynamic  Free SQL
+ Query    Cube     Policy
+ │       │        │
+ └───────┼────────┘
+         ▼
+    Cube Compiler
+         ▼
+     SQL Safety
+         ▼
+      Databend
+```
+
+其中：
+
+- `Certified Query` 为高频、已验证问题提供稳定查询计划；
+- `Dynamic Cube` 由 LLM 从公开语义成员构造受约束的 Cube Query，包括聚合和 `ungrouped` 明细查询；
+- `Free SQL Policy` 控制用户提交的自由 SQL 是否允许进入执行链路；
+- `Cube Compiler` 将语义 Query 编译为 Databend SQL；
+- `SQL Safety` 对最终 SQL 执行确定性的只读、单语句和 Schema 边界校验；
+- `Databend` 负责真实数据存储与 SQL 执行。
 
 ```text
 业务问题
@@ -19,7 +50,7 @@
 
 ## 主要功能
 
-### Semantic SQL Copilot
+### AI 语义查询工作台
 
 - 使用自然语言查询订单、销售额、发货、供应商和区域等 TPC-H 业务数据
 - 优先匹配认证查询，也可以动态组合受校验的 Cube Query
@@ -150,8 +181,8 @@ yarn build
 ### 2. 安装 Demo 依赖
 
 ```bash
-git clone https://github.com/wubx/databend-semantic-sql-demo.git
-cd databend-semantic-sql-demo
+git clone https://github.com/wubx/databend-semantic-query-lab.git
+cd databend-semantic-query-lab
 npm install
 ```
 

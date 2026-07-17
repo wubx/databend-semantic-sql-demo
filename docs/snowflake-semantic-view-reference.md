@@ -1,7 +1,7 @@
 # Snowflake Semantic View YAML Reference
 
 This document preserves and explains Snowflake's semantic view YAML shape as a
-reference for the Databend semantic SQL demo. It is **not** a Cube model file
+reference for Databend Semantic Query Lab. It is **not** a Cube model file
 and cannot be loaded by Cube directly.
 
 Its main value is architectural: it combines physical data sources, business

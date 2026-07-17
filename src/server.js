@@ -595,7 +595,7 @@ app.use((error, _req, res, _next) => {
 app.listen(port, host, () => {
   const displayHost = host === "0.0.0.0" || host === "::" ? "localhost" : host;
   console.log(
-    `Databend Semantic SQL Demo is listening on http://${displayHost}:${port}`,
+    `Databend Semantic Query Lab is listening on http://${displayHost}:${port}`,
   );
   if (host === "0.0.0.0" || host === "::")
     console.log(`LAN access is enabled on port ${port}`);
