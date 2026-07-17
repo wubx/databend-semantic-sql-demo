@@ -10,7 +10,7 @@ const { loadManifest } = require("../src/manifest");
 test("assembles modular semantic sources into one runtime manifest", () => {
   const assembled = assembleManifest();
   const loaded = loadManifest();
-  assert.equal(assembled.entities.length, 10);
+  assert.equal(assembled.entities.length, 12);
   assert.deepEqual(assembled, loaded);
   assert.deepEqual(
     assembled.entities.map((entity) => entity.name),
@@ -20,6 +20,8 @@ test("assembles modular semantic sources into one runtime manifest", () => {
       "Customer",
       "Supplier",
       "Nation",
+      "CustomerNation",
+      "SupplierNation",
       "Region",
       "Part",
       "Partsupp",

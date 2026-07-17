@@ -9,20 +9,36 @@ relationships:
         to: c_custkey
   - name: customer_nation
     from: Customer
-    to: Nation
+    to: CustomerNation
     cardinality: many_to_one
-    sql: '"customer".c_nationkey = "nation".n_nationkey'
+    sql: '"customer".c_nationkey = "customer_nation".n_nationkey'
     columns:
       - from: c_nationkey
         to: n_nationkey
   - name: supplier_nation
     from: Supplier
-    to: Nation
+    to: SupplierNation
     cardinality: many_to_one
-    sql: '"supplier".s_nationkey = "nation".n_nationkey'
+    sql: '"supplier".s_nationkey = "supplier_nation".n_nationkey'
     columns:
       - from: s_nationkey
         to: n_nationkey
+  - name: customer_nation_region
+    from: CustomerNation
+    to: Region
+    cardinality: many_to_one
+    sql: '"customer_nation".n_regionkey = "region".r_regionkey'
+    columns:
+      - from: n_regionkey
+        to: r_regionkey
+  - name: supplier_nation_region
+    from: SupplierNation
+    to: Region
+    cardinality: many_to_one
+    sql: '"supplier_nation".n_regionkey = "region".r_regionkey'
+    columns:
+      - from: n_regionkey
+        to: r_regionkey
   - name: nation_region
     from: Nation
     to: Region

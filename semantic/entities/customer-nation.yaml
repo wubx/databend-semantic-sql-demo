@@ -1,0 +1,53 @@
+entity:
+  name: CustomerNation
+  title: 客户所属国家
+  description: TPC-H 客户记录所属国家的角色化地理维度，用于在同一查询中明确区分客户国家与供应商国家。该字段来自 customer.c_nationkey 关联的 nation 记录，不代表订单实际收货国家或配送目的地。
+  source:
+    schema: tpch_100
+    table: nation
+  keys:
+    primary: nationKey
+  dimensions:
+    - name: nationKey
+      title: 客户所属国家编号
+      expr: n_nationkey
+      type: number
+      synonyms:
+        - 客户国家编号
+        - 客户所属国家ID
+        - customer nation key
+        - customer country id
+      description: 客户所属国家的角色化编号。
+      business_definition: 通过 Customer.nationKey 关联到 nation.n_nationkey 的国家编号；仅表示客户主数据中的所属国家。
+    - name: name
+      title: 客户所属国家名称
+      expr: n_name
+      type: string
+      synonyms:
+        - 客户国家
+        - 客户所在国家
+        - 客户所属国家
+        - customer nation
+        - customer country
+        - customer country name
+      description: 客户主数据关联的国家名称，不代表订单收货国家。
+      business_definition: 通过 customer.c_nationkey 关联得到的 nation.n_name。TPC-H 没有订单收货国家字段，因此不得将该成员解释或展示为收货国家、接收国家或配送目的国。
+    - name: regionKey
+      title: 客户所属区域编号
+      expr: n_regionkey
+      type: number
+      synonyms:
+        - 客户区域编号
+        - customer region key
+      description: 客户所属国家关联的区域编号。
+      business_definition: 客户所属国家记录上的 n_regionkey。
+  governance:
+    status: governed
+    role_playing_dimension: true
+    role: customer_nation
+    warnings:
+      - 客户所属国家不等于订单实际收货国家。
+      - TPC-H 不包含订单级收货国家或配送目的地字段。
+  extensions:
+    cube:
+      refresh_key: false

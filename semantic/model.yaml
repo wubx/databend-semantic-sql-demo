@@ -14,6 +14,8 @@ includes:
     - entities/customer.yaml
     - entities/supplier.yaml
     - entities/nation.yaml
+    - entities/customer-nation.yaml
+    - entities/supplier-nation.yaml
     - entities/region.yaml
     - entities/part.yaml
     - entities/partsupp.yaml

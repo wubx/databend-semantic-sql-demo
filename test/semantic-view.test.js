@@ -5,7 +5,7 @@ const { buildSemanticView } = require("../src/semantic-view");
 
 test("builds a user-facing semantic model view", () => {
   const view = buildSemanticView();
-  assert.equal(view.stats.entities, 10);
+  assert.equal(view.stats.entities, 12);
   assert.equal(view.stats.verifiedQueries, 7);
   assert.ok(view.stats.members >= view.stats.publicMembers);
   assert.ok(view.stats.measures > 0);
@@ -34,6 +34,22 @@ test("builds a user-facing semantic model view", () => {
     orderShipping.members.some(
       (member) => member.id === "OrderShipping.averageOrderAmount",
     ),
+  );
+  const customerNation = view.entities.find(
+    (entity) => entity.name === "CustomerNation",
+  );
+  const supplierNation = view.entities.find(
+    (entity) => entity.name === "SupplierNation",
+  );
+  assert.equal(
+    customerNation.members.find((member) => member.id === "CustomerNation.name")
+      .title,
+    "客户所属国家名称",
+  );
+  assert.equal(
+    supplierNation.members.find((member) => member.id === "SupplierNation.name")
+      .title,
+    "供应商所属国家名称",
   );
 });
 

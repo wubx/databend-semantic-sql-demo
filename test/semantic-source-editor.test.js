@@ -27,7 +27,7 @@ test("validates relationships through full manifest and Cube compilation", async
   const result = await validateSemanticSource("relationships.yaml", content);
   assert.equal(result.valid, true);
   assert.equal(result.compiled, true);
-  assert.equal(result.relationships, 9);
+  assert.equal(result.relationships, 11);
   assert.ok(result.cubes.includes("Orders"));
 });
 
@@ -42,7 +42,7 @@ test("allows editing all source YAML and protects referenced entity deletion", a
     fs.readFileSync(ordersPath, "utf8"),
   );
   assert.equal(result.valid, true);
-  assert.equal(result.entities, 10);
+  assert.equal(result.entities, 12);
   await assert.rejects(
     validateSemanticSourceDeletion("entities/orders.yaml"),
     /unknown entity|unknown member/,

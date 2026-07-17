@@ -1,0 +1,50 @@
+entity:
+  name: SupplierNation
+  title: 供应商所属国家
+  description: TPC-H 供应商记录所属国家的角色化地理维度，用于在同一查询中明确区分供应商国家与客户国家。该字段来自 supplier.s_nationkey 关联的 nation 记录。
+  source:
+    schema: tpch_100
+    table: nation
+  keys:
+    primary: nationKey
+  dimensions:
+    - name: nationKey
+      title: 供应商所属国家编号
+      expr: n_nationkey
+      type: number
+      synonyms:
+        - 供应商国家编号
+        - 供货商国家ID
+        - supplier nation key
+        - supplier country id
+      description: 供应商所属国家的角色化编号。
+      business_definition: 通过 Supplier.nationKey 关联到 nation.n_nationkey 的国家编号；仅表示供应商主数据中的所属国家。
+    - name: name
+      title: 供应商所属国家名称
+      expr: n_name
+      type: string
+      synonyms:
+        - 供应商国家
+        - 供货商国家
+        - 供应商所属国家
+        - supplier nation
+        - supplier country
+        - supplier country name
+      description: 供应商主数据关联的国家名称。
+      business_definition: 通过 supplier.s_nationkey 关联得到的 nation.n_name，用于明确表示供应商所属国家，不表示客户国家或订单收货国家。
+    - name: regionKey
+      title: 供应商所属区域编号
+      expr: n_regionkey
+      type: number
+      synonyms:
+        - 供应商区域编号
+        - supplier region key
+      description: 供应商所属国家关联的区域编号。
+      business_definition: 供应商所属国家记录上的 n_regionkey。
+  governance:
+    status: governed
+    role_playing_dimension: true
+    role: supplier_nation
+  extensions:
+    cube:
+      refresh_key: false

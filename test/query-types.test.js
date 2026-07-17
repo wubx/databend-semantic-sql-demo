@@ -41,10 +41,10 @@ test("join type: region analysis has a governed join chain", () => {
   );
   assert.deepEqual(
     model.get("Customer").joins.map((join) => join.name),
-    ["Nation"],
+    ["CustomerNation"],
   );
   assert.deepEqual(
-    model.get("Nation").joins.map((join) => join.name),
+    model.get("CustomerNation").joins.map((join) => join.name),
     ["Region"],
   );
 });
