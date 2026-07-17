@@ -1472,11 +1472,19 @@ function formatWorkflowQueries(workflow) {
 }
 
 function formatWorkflowSql(workflow) {
-  return (workflow?.stages || [])
-    .map(
-      (stage, index) =>
-        `-- Stage ${index + 1}: ${stage.id} (${stage.role})${stage.template ? " · SQL 模板，执行时注入 Stage 1 Keys" : ""}\n${stage.sql || "-- 尚未生成"}`,
-    )
+  const stages = workflow?.stages || [];
+  if (!stages.length) return "Workflow 没有可展示的 SQL Stage。";
+  return stages
+    .map((stage, index) => {
+      const sql = stage.sql || stage.validation?.sql;
+      const parameterText = stage.sqlValues?.length
+        ? `\n\n-- Bindings (${stage.sqlValues.length}): ${stage.template ? "执行时替换为 Stage 1 导出的 Keys" : JSON.stringify(stage.sqlValues)}`
+        : "";
+      const validationText = stage.validation
+        ? `\n-- Safety: ${stage.validation.valid ? "passed" : `failed · ${(stage.validation.errors || []).join("; ")}`}`
+        : "\n-- Safety: pending";
+      return `-- Stage ${index + 1}: ${stage.id} (${stage.role})${stage.template ? " · SQL 模板，执行时注入 Stage 1 Keys" : ""}${validationText}\n${sql || "-- SQL 尚未生成，请重新生成计划或执行完整 Workflow。"}${parameterText}`;
+    })
     .join("\n\n────────────────────────────────────────\n\n");
 }
 
