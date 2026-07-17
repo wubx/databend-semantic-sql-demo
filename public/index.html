@@ -148,6 +148,31 @@
             <div id="evolutionDetail" class="empty">
               选择左侧语义缺口，查看问题、原因、缺失成员和候选 YAML。
             </div>
+            <section
+              id="evolutionCollaboration"
+              class="evolution-collaboration hidden"
+            >
+              <strong>人机协作处理</strong>
+              <ol>
+                <li>维护人员确认业务口径、分析粒度、分子分母和多值归属。</li>
+                <li>LLM 基于日志、相关 YAML 和人工意见生成最小修改建议。</li>
+                <li>人工审核 Draft YAML，完成校验后再发布。</li>
+                <li>回放原始问题，确认从“不支持”变为可信查询。</li>
+              </ol>
+              <label
+                >维护人员补充意见<textarea
+                  id="evolutionReviewerContext"
+                  rows="5"
+                  placeholder="例如：只统计单一运输方式订单；分母使用去重订单数；多运输方式订单排除；该指标仅供内部分析。"
+                ></textarea>
+              </label>
+              <div class="evolution-human-actions">
+                <button id="evolutionOpenYaml" class="tiny">
+                  打开候选 YAML
+                </button>
+                <button id="evolutionReplay" class="tiny">回放代表问题</button>
+              </div>
+            </section>
             <div class="actions">
               <button id="analyzeEvolution" class="primary" disabled>
                 使用 LLM 分析并生成 Draft

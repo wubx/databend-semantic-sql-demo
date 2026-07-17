@@ -52,7 +52,7 @@ async function listEvolutionIssues() {
   };
 }
 
-async function analyzeEvolutionIssue(issueId) {
+async function analyzeEvolutionIssue(issueId, reviewerContext = "") {
   if (!isEnabled())
     throw new Error("AI semantic evolution analysis is disabled");
   const { issues } = await listEvolutionIssues();
@@ -83,7 +83,11 @@ async function analyzeEvolutionIssue(issueId) {
       },
       {
         role: "user",
-        content: JSON.stringify({ issue, relevantSemanticSources: sources }),
+        content: JSON.stringify({
+          issue,
+          reviewerContext: String(reviewerContext || "").slice(0, 4000),
+          relevantSemanticSources: sources,
+        }),
       },
     ],
     {

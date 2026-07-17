@@ -27,6 +27,10 @@ const elements = Object.fromEntries(
     "evolutionHeading",
     "evolutionStatus",
     "evolutionDetail",
+    "evolutionCollaboration",
+    "evolutionReviewerContext",
+    "evolutionOpenYaml",
+    "evolutionReplay",
     "analyzeEvolution",
     "evolutionProposal",
     "observabilityPage",
@@ -205,6 +209,8 @@ async function boot() {
     if (button) selectEvolutionIssue(button.dataset.evolutionIssue);
   });
   elements.analyzeEvolution.addEventListener("click", analyzeSelectedEvolution);
+  elements.evolutionOpenYaml.addEventListener("click", openEvolutionYaml);
+  elements.evolutionReplay.addEventListener("click", replayEvolutionQuestion);
   elements.refreshLogs.addEventListener("click", loadQueryLogs);
   elements.logOriginFilter.addEventListener("change", loadQueryLogs);
   elements.logStatusFilter.addEventListener("change", loadQueryLogs);
@@ -890,9 +896,35 @@ function selectEvolutionIssue(issueId) {
   elements.evolutionStatus.textContent = `${evolutionCategoryLabel(issue.category)} · ${issue.count} 次`;
   elements.evolutionDetail.className = "";
   elements.evolutionDetail.innerHTML = `<div class="evolution-diagnostics"><div><span>代表问题</span><p>${issue.questions.map(escapeHtml).join("<br>")}</p></div><div><span>拒绝原因</span><p>${issue.reasons.map(escapeHtml).join("<br>")}</p></div><div><span>缺失成员</span><code>${escapeHtml(issue.missingMembers.join("、") || "-")}</code></div><div><span>涉及实体</span><code>${escapeHtml(issue.affectedEntities.join("、") || "-")}</code></div><div><span>候选 YAML</span><code>${escapeHtml(issue.yamlCandidates.join("\n") || "-")}</code></div><div><span>已有建议</span><p>${issue.suggestedActions.map(escapeHtml).join("<br>") || "-"}</p></div></div>`;
+  elements.evolutionCollaboration.classList.remove("hidden");
+  elements.evolutionReviewerContext.value = "";
   elements.analyzeEvolution.disabled = false;
   elements.evolutionProposal.classList.add("hidden");
   elements.evolutionProposal.innerHTML = "";
+}
+
+function openEvolutionYaml() {
+  const issue = evolutionIssues.find(
+    (item) => item.id === selectedEvolutionIssueId,
+  );
+  const candidate = issue?.yamlCandidates?.find((file) =>
+    semanticSourceFiles.some((source) => source.path === file),
+  );
+  if (!candidate) return;
+  const source = semanticSourceFiles.find((item) => item.path === candidate);
+  showPage("semantic");
+  showSemanticView("source");
+  loadSemanticSource(source.id);
+}
+
+function replayEvolutionQuestion() {
+  const issue = evolutionIssues.find(
+    (item) => item.id === selectedEvolutionIssueId,
+  );
+  if (!issue?.questions?.[0]) return;
+  elements.question.value = issue.questions[0];
+  showPage("query");
+  elements.question.focus();
 }
 
 async function analyzeSelectedEvolution() {
@@ -903,7 +935,10 @@ async function analyzeSelectedEvolution() {
   try {
     const response = await api("/api/semantic-evolution/analyze", {
       method: "POST",
-      body: JSON.stringify({ issueId: selectedEvolutionIssueId }),
+      body: JSON.stringify({
+        issueId: selectedEvolutionIssueId,
+        reviewerContext: elements.evolutionReviewerContext.value.trim(),
+      }),
     });
     renderEvolutionProposal(response.proposal);
     elements.evolutionStatus.textContent = "Review required";

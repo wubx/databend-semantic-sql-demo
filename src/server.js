@@ -128,7 +128,12 @@ app.get(
 app.post(
   "/api/semantic-evolution/analyze",
   asyncHandler(async (req, res) => {
-    res.json(await analyzeEvolutionIssue(String(req.body?.issueId || "")));
+    res.json(
+      await analyzeEvolutionIssue(
+        String(req.body?.issueId || ""),
+        req.body?.reviewerContext,
+      ),
+    );
   }),
 );
 

@@ -168,6 +168,39 @@ h2 {
   white-space: pre-wrap;
   line-height: 1.6;
 }
+.evolution-collaboration {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(10, 40, 52, 0.52);
+  border: 1px solid #2a5965;
+  border-radius: 11px;
+}
+.evolution-collaboration > strong {
+  color: #62ead0;
+}
+.evolution-collaboration ol {
+  margin: 0;
+  padding-left: 22px;
+  color: #a8bfd1;
+  line-height: 1.7;
+}
+.evolution-collaboration label {
+  color: #89a6bd;
+  font-size: 11px;
+}
+.evolution-collaboration textarea {
+  min-height: 105px;
+  margin-top: 7px;
+  font-size: 13px;
+}
+.evolution-human-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .evolution-proposal {
   display: grid;
   gap: 14px;
