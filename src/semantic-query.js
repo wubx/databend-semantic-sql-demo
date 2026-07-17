@@ -21,6 +21,7 @@ const ALLOWED_OPERATORS = new Set([
 ]);
 const MAX_MEASURES = 3;
 const MAX_DIMENSIONS = 8;
+const MAX_UNGROUPED_DIMENSIONS = 16;
 const MAX_TIME_DIMENSIONS = 3;
 const MAX_FILTERS = 5;
 const MAX_LIMIT = 500;
@@ -36,20 +37,21 @@ function validateSemanticQuery(input, memberCatalog, options = {}) {
     "measures",
     options.maxMeasures || MAX_MEASURES,
   );
-  const dimensions = uniqueStrings(
-    input.dimensions || [],
-    "dimensions",
-    options.maxDimensions || MAX_DIMENSIONS,
-  );
   const ungrouped = input.ungrouped === true;
   if (input.ungrouped != null && typeof input.ungrouped !== "boolean")
     throw new Error("ungrouped must be a boolean");
+  const dimensions = uniqueStrings(
+    input.dimensions || [],
+    "dimensions",
+    options.maxDimensions ||
+      (ungrouped ? MAX_UNGROUPED_DIMENSIONS : MAX_DIMENSIONS),
+  );
   for (const name of measures) requireMember(members, name, ["measure"]);
   for (const name of dimensions)
     requireMember(
       members,
       name,
-      ungrouped ? ["dimension", "fact"] : ["dimension"],
+      ungrouped ? ["dimension", "time_dimension", "fact"] : ["dimension"],
     );
 
   const timeDimensions = (input.timeDimensions || []).map((item) => {

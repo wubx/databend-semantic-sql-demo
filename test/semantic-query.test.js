@@ -147,6 +147,37 @@ test("rejects facts in grouped queries", () => {
   );
 });
 
+test("accepts time members as selected dimensions in rich ungrouped details", () => {
+  const query = validateSemanticQuery(
+    {
+      dimensions: [
+        "LineItem.orderKey",
+        "LineItem.lineNumber",
+        "LineItem.partKey",
+        "LineItem.supplierKey",
+        "LineItem.lineStatus",
+        "LineItem.returnFlag",
+        "LineItem.shipMode",
+        "LineItem.shipInstruction",
+        "LineItem.shipDate",
+        "LineItem.commitDate",
+        "LineItem.receiptDate",
+        "LineItem.quantity",
+        "LineItem.extendedPrice",
+        "LineItem.discountRate",
+        "LineItem.taxRate",
+      ],
+      order: { "LineItem.orderKey": "asc", "LineItem.lineNumber": "asc" },
+      ungrouped: true,
+      limit: 10,
+    },
+    catalog,
+  );
+  assert.equal(query.dimensions.length, 15);
+  assert.equal(query.timeDimensions, undefined);
+  assert.equal(query.limit, 10);
+});
+
 test("rejects measures in ungrouped detail queries", () => {
   assert.throws(
     () =>
