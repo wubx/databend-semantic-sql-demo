@@ -9,10 +9,12 @@ const elements = Object.fromEntries(
     "route",
     "interpretation",
     "cubeQuery",
+    "semanticPlanTitle",
     "validation",
     "explain",
     "executeSql",
     "sql",
+    "generatedSqlTitle",
     "explainResult",
     "result",
     "metrics",
@@ -1365,6 +1367,8 @@ function resetQueryOutput() {
   elements.route.textContent = "处理中";
   elements.interpretation.className = "empty";
   elements.interpretation.textContent = "正在理解问题并生成查询计划…";
+  elements.semanticPlanTitle.textContent = "Cube Query";
+  elements.generatedSqlTitle.textContent = "生成的 Databend SQL";
   elements.cubeQuery.textContent = "正在生成…";
   elements.sql.textContent = "正在生成…";
   elements.validation.textContent = "未验证";
@@ -1391,11 +1395,19 @@ function renderPlan(plan) {
     elements.validation.style.color = "";
     return;
   }
+  const workflow = plan.route === "semantic-workflow";
+  const semantic = plan.route === "semantic";
   elements.interpretation.className = "";
-  elements.route.textContent =
-    plan.route === "semantic" ? "Semantic" : "TPC-H SQL";
+  elements.route.textContent = workflow
+    ? "Semantic Workflow"
+    : semantic
+      ? "Semantic"
+      : "TPC-H SQL";
   elements.interpretation.innerHTML = [
-    ["认证查询", `${plan.queryId} · ${plan.title}`],
+    [
+      workflow ? "查询策略" : semantic ? "语义查询" : "认证查询",
+      `${plan.queryId} · ${plan.title}`,
+    ],
     [
       "计划器",
       plan.fallback
@@ -1411,9 +1423,11 @@ function renderPlan(plan) {
     ["可信度", `${Math.round(plan.confidence * 100)}%`],
     [
       "执行路径",
-      plan.route === "semantic"
-        ? `${plan.semanticGateway === "embedded" ? "Embedded Cube Compiler" : "Cube Semantic Query"} → Databend`
-        : "Certified SQL → Databend",
+      workflow
+        ? "Semantic Workflow → Cube → Databend"
+        : semantic
+          ? `${plan.semanticGateway === "embedded" ? "Embedded Cube Compiler" : "Cube Semantic Query"} → Databend`
+          : "Certified SQL → Databend",
     ],
     ["查询参数", formatQueryParameters(plan)],
     ["计划耗时", formatTimings(plan.timings)],
@@ -1423,19 +1437,47 @@ function renderPlan(plan) {
         `<div class="interpretation-row"><span>${key}</span><strong>${escapeHtml(value)}</strong></div>`,
     )
     .join("");
-  elements.cubeQuery.textContent = plan.cubeQuery
-    ? JSON.stringify(plan.cubeQuery, null, 2)
-    : "此查询使用认证的 TPC-H SQL 模板。";
-  elements.sql.textContent = plan.sql || "尚未生成";
+  elements.semanticPlanTitle.textContent = workflow
+    ? "Semantic Workflow"
+    : "Cube Query";
+  elements.generatedSqlTitle.textContent = workflow
+    ? "各阶段 Databend SQL"
+    : "生成的 Databend SQL";
+  elements.cubeQuery.textContent = workflow
+    ? formatWorkflowQueries(plan.workflow)
+    : plan.cubeQuery
+      ? JSON.stringify(plan.cubeQuery, null, 2)
+      : "此查询使用认证的 TPC-H SQL 模板。";
+  elements.sql.textContent = workflow
+    ? formatWorkflowSql(plan.workflow)
+    : plan.sql || "尚未生成";
   elements.validation.textContent = plan.validation?.valid
     ? "安全检查通过"
     : "安全检查失败";
   elements.validation.style.color = plan.validation?.valid
     ? "#55dfc5"
     : "#ff8da3";
-  elements.explain.disabled = !plan.validation?.valid;
-  elements.executeSql.disabled = !plan.validation?.valid;
+  elements.explain.disabled = workflow || !plan.validation?.valid;
+  elements.executeSql.disabled = workflow || !plan.validation?.valid;
   elements.explainResult.classList.add("hidden");
+}
+
+function formatWorkflowQueries(workflow) {
+  return (workflow?.stages || [])
+    .map(
+      (stage, index) =>
+        `Stage ${index + 1} · ${stage.id} · ${stage.role}\n${JSON.stringify(stage.query, null, 2)}${stage.exportMember ? `\nExport: ${stage.exportMember}` : ""}${stage.binding ? `\nBinding: ${stage.binding.sourceMember} → ${stage.binding.targetMember}` : ""}`,
+    )
+    .join("\n\n────────────────────────────────────────\n\n");
+}
+
+function formatWorkflowSql(workflow) {
+  return (workflow?.stages || [])
+    .map(
+      (stage, index) =>
+        `-- Stage ${index + 1}: ${stage.id} (${stage.role})\n${stage.sql || "-- 执行 Stage 1 后注入 Keys，再生成该阶段 SQL"}`,
+    )
+    .join("\n\n────────────────────────────────────────\n\n");
 }
 
 async function explain() {
@@ -1493,7 +1535,11 @@ async function executePlannedSql() {
 function renderResult(response) {
   elements.result.className = "";
   const rows = response.data || [];
-  elements.metrics.textContent = `${response.source} · ${response.durationMs} ms · ${rows.length} rows · ${formatTimings(response.timings)}`;
+  const workflow = response.workflow;
+  const workflowMetrics = workflow
+    ? ` · 父记录 ${workflow.parentRowCount} · 导出 Keys ${workflow.exportedKeyCount} · 明细 ${workflow.detailRowCount} · ${workflow.complete ? "完整" : "已截断"}`
+    : "";
+  elements.metrics.textContent = `${response.source} · ${response.durationMs} ms · ${rows.length} rows${workflowMetrics} · ${formatTimings(response.timings)}`;
   if (response.summary) {
     elements.summary.textContent = response.summary;
     elements.summaryCard.classList.remove("hidden");

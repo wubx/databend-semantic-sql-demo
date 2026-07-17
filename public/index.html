@@ -72,12 +72,12 @@
               ><span id="route" class="badge">等待输入</span>
             </div>
             <div id="interpretation" class="empty">
-              输入自然语言问题后，这里会展示路由、认证查询和参数。
+              输入自然语言问题后，这里会展示查询策略、语义计划和参数。
             </div>
           </article>
           <article class="card">
             <div class="card-title">
-              <span>Cube Query</span
+              <span id="semanticPlanTitle">Cube Query</span
               ><span class="badge subtle">Semantic JSON</span>
             </div>
             <pre id="cubeQuery" class="code">尚未生成</pre>
@@ -86,7 +86,7 @@
 
         <section class="card sql-card">
           <div class="card-title">
-            <span>生成的 Databend SQL</span>
+            <span id="generatedSqlTitle">生成的 Databend SQL</span>
             <div>
               <span id="validation" class="badge">未验证</span
               ><button id="explain" class="tiny" disabled>EXPLAIN</button
